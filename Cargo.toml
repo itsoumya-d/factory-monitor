@@ -1,0 +1,52 @@
+[workspace]
+resolver = "3"
+members = ["crates/common-types"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.85"
+version = "0.1.0"
+
+[workspace.dependencies]
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v7", "serde"] }
+bitflags = { version = "2", features = ["serde"] }
+
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.8", features = ["ws"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+tonic = "0.13"
+reqwest = { version = "0.12", features = ["json", "rustls-tls", "multipart", "stream"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "chrono", "migrate"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+ndarray = { version = "0.16", features = ["serde"] }
+rustfft = "6"
+rustdct = "0.7"
+nalgebra = { version = "0.33", features = ["serde-serialize"] }
+ort = { version = "2.0.0-rc", features = ["cuda", "tensorrt"] }
+gstreamer = "0.23"
+gstreamer-app = "0.23"
+gstreamer-video = "0.23"
+pcap = "2"
+tokio-serial = "5"
+qdrant-client = "1.13"
+lapjv = "0.1"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
+base64 = "0.22"
+prometheus = { version = "0.14", features = ["process"] }
+config = { version = "0.15", features = ["toml", "environment"] }
+rand = "0.9"
+crossbeam-channel = "0.5"
+rtrb = "0.3"
+
+proptest = "1"
+insta = { version = "1", features = ["yaml"] }
+criterion = { version = "0.5", features = ["html_reports"] }
+mock-instant = "0.3"
