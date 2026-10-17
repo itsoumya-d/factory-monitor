@@ -29,4 +29,5 @@ tracing.workspace = true
 tokio.workspace = true
 
 [dev-dependencies]
+rl-controller = { path = "../rl-controller", version = "0.1.0" }
 proptest.workspace = true

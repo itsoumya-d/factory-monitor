@@ -28,3 +28,6 @@ unsafe_code = "forbid"
 [lints.clippy]
 unwrap_used = "warn"
 expect_used = "warn"
+
+[dev-dependencies]
+rl-controller = { path = "../rl-controller", version = "0.1.0" }

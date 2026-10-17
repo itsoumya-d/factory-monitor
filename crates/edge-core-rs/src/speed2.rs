@@ -223,3 +223,50 @@ mod ucb_tests {
         assert!((v - 1000.5).abs() < 1e-3, "{}", v);
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod rl_parity {
+    use super::*;
+    use rl_controller::reward::correction_reward;
+
+    /// The Speed-2 τ guardrail must stay identical to the bandit
+    /// policy's confidence guardrail (docs/08 §6: absolute).
+    #[test]
+    fn guardrail_parity_with_policy_bounds() {
+        use common_types::bounds::CONF_SAFE_RANGE;
+        assert_eq!(
+            TAU_MIN,
+            *CONF_SAFE_RANGE.start(),
+            "both crates clamp τ from 0.25"
+        );
+        assert_eq!(
+            TAU_MAX,
+            *CONF_SAFE_RANGE.end(),
+            "both crates clamp τ to 0.85"
+        );
+    }
+
+    /// A reward shaped by the shared contract must flow into the bandit
+    /// untouched in magnitude (consumer clamps are allowed to be tighter).
+    #[test]
+    fn shaped_reward_drives_learning() {
+        let mut state = ThresholdBanditState::try_new(
+            RuleId::try_new(7).expect("id"),
+            &[TAU_MIN, (TAU_MIN + TAU_MAX) / 2.0, TAU_MAX],
+        )
+        .expect("grid");
+        state.recorded((TAU_MIN + TAU_MAX) / 2.0, correction_reward(1485, 1420));
+        // Overcount penalty is negative: that arm's mean drops precisely.
+        let rendered = state
+            .arms
+            .iter()
+            .find(|a| (a.tau - (TAU_MIN + TAU_MAX) / 2.0).abs() < 1e-6)
+            .expect("middle arm");
+        let want: f32 = -0.65;
+        assert!(
+            (rendered.mean_reward() - want.clamp(-1.0, 1.0)).abs() < 1e-6,
+            "{rendered:?}"
+        );
+    }
+}

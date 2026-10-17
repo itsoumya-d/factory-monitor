@@ -613,3 +613,60 @@ mod tests {
         assert!((engine.blend().wifi() - 0.4).abs() < 1e-6);
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod rl_cannot_blind {
+    use super::*;
+    use common_types::bounds::{CONF_SAFE_RANGE, FUSION_WEIGHT_RANGE};
+
+    /// Deterministic LCG — nightly soak without external rand deps.
+    struct Lcg(u64);
+    impl Lcg {
+        fn next_u32(&mut self) -> u32 {
+            self.0 = self
+                .0
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            (self.0 >> 33) as u32
+        }
+    }
+
+    /// Every raw policy output that can exist keeps the blend inside the
+    /// guardrails: vision never below 0.05, all weights normalized.
+    #[test]
+    fn clamped_actions_keep_the_blend_in_guardrails() {
+        let mut rng = Lcg(0xDA1A);
+        for _ in 0..200 {
+            let raw_c = 10.0 * (rng.next_u32() as f32 / u32::MAX as f32) - 5.0;
+            let raw_w = 10.0 * (rng.next_u32() as f32 / u32::MAX as f32) - 5.0;
+            let action = RlAction::clamped(raw_c, 0.5, raw_w, 45);
+            let wf = action.vision_weight();
+            let _ = action.conf_threshold();
+            assert!(
+                FUSION_WEIGHT_RANGE.contains(&wf),
+                "weight {wf} outside {FUSION_WEIGHT_RANGE:?} from raw {raw_w}"
+            );
+            assert!(
+                CONF_SAFE_RANGE.contains(&action.conf_threshold()),
+                "conf outside guardrail from raw {raw_c}"
+            );
+            let blended = ModalityBlend::normalize(wf);
+            let sum = blended.vision() + blended.wifi();
+            assert!((sum - 1.0).abs() < 1e-5, "normalized into unity: {sum}");
+            assert!(blended.vision() >= *FUSION_WEIGHT_RANGE.start() - 1e-6);
+        }
+    }
+
+    #[test]
+    fn extreme_feedback_rewinds_to_bounded_reward() {
+        for delta in [-8000_i64, -150, 150, 8000] {
+            let reward = rl_controller::reward::correction_reward(0, delta);
+            assert!(reward.is_finite(), "{delta} → {reward}");
+            assert!(
+                reward <= 0.0,
+                "every error is a penalty: {delta} → {reward}"
+            );
+        }
+    }
+}
