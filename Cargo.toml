@@ -7,6 +7,7 @@ members = [
     "crates/inference-engine",
     "crates/rl-controller",
     "crates/vlm-orchestrator",
+    "crates/api-server",
 ]
 
 [workspace.package]
@@ -28,10 +29,10 @@ bitflags = { version = "2", features = ["serde"] }
 tokio = { version = "1", features = ["full"] }
 axum = { version = "0.8", features = ["ws"] }
 tower = "0.5"
-tower-http = { version = "0.6", features = ["cors", "trace"] }
+tower-http = { version = "0.6", features = ["timeout", "cors", "trace"] }
 tonic = "0.13"
 reqwest = { version = "0.12", features = ["json", "rustls-tls", "multipart", "stream"] }
-sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "chrono", "migrate"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "chrono", "migrate", "uuid"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 ndarray = { version = "0.16", features = ["serde"] }
@@ -52,6 +53,8 @@ prometheus = { version = "0.14", features = ["process"] }
 config = { version = "0.15", features = ["toml", "environment"] }
 rand = "0.9"
 rand_distr = "0.5"
+sha2 = "0.10"
+hmac = "0.12"
 crossbeam-channel = "0.5"
 rtrb = "0.3"
 
