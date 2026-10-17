@@ -1,0 +1,25 @@
+[package]
+name = "spatial-studio-ui"
+version = "0.1.0"
+edition = "2024"
+license.workspace = true
+
+[dependencies]
+monitoring-contract = { path = "../monitoring-contract" }
+compliance-guard = { path = "../compliance-guard" }
+thiserror.workspace = true
+serde.workspace = true
+chrono.workspace = true
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+
+dioxus = { version = "0.7", features = ["web"] }
+
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"
