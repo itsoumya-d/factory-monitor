@@ -3,6 +3,7 @@ name = "common-types"
 edition.workspace = true
 rust-version.workspace = true
 version.workspace = true
+license.workspace = true
 description = "Shado contract layer: shared types, safe bounds, and traits for the factory monitoring engine"
 
 [features]

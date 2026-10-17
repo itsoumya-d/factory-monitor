@@ -6,6 +6,7 @@ members = ["crates/common-types"]
 edition = "2024"
 rust-version = "1.85"
 version = "0.1.0"
+license = "Apache-2.0 OR MIT"
 
 [workspace.dependencies]
 async-trait = "0.1"
