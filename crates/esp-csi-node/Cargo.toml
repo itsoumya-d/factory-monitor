@@ -1,0 +1,38 @@
+[package]
+name = "esp-csi-node"
+version = "0.1.0"
+edition = "2024"
+license.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+libm = "0.2"
+
+[target.'cfg(target_arch = "xtensa")'.dependencies]
+
+esp-hal = { version = "~1.2", features = ["esp32s3"] }
+
+esp-csi-rs = "0.13.0"
+
+embassy-executor = "0.10.0"
+
+defmt = "1.0.1"
+
+
+
+[target.'cfg(target_arch = "riscv32")'.dependencies]
+
+esp-hal = { version = "~1.2", features = ["esp32c6"] }
+
+esp-csi-rs = "0.13.0"
+
+embassy-executor = "0.10.0"
+
+defmt = "1.0.1"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"

@@ -1,0 +1,30 @@
+[package]
+name = "edge-core-rs"
+version = "0.1.0"
+edition = "2024"
+license.workspace = true
+
+[features]
+tensorrt = ["ort"]
+
+[dependencies.ort]
+version = "2.0.0-rc.14"
+default-features = false
+optional = true
+
+[dependencies]
+common-types = { path = "../common-types" }
+monitoring-contract = { path = "../monitoring-contract" }
+compliance-guard = { path = "../compliance-guard" }
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"

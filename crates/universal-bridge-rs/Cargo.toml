@@ -1,0 +1,55 @@
+[package]
+name = "universal-bridge-rs"
+version = "0.1.0"
+edition = "2024"
+license.workspace = true
+
+[features]
+modbus = ["dep:tokio-modbus"]
+opcua = ["dep:opcua"]
+agent = ["dep:rig-core", "dep:mcp-core"]
+tpm2 = ["dep:tss-esapi"]
+c2pa = ["dep:c2pa"]
+
+[dependencies.tokio-modbus]
+version = "0.17.0"
+optional = true
+
+[dependencies.opcua]
+version = "0.12.0"
+optional = true
+
+[dependencies.rig-core]
+version = "0.44.0"
+optional = true
+
+[dependencies.mcp-core]
+version = "0.1.50"
+optional = true
+
+[dependencies.tss-esapi]
+version = "8.0.0-alpha.4"
+optional = true
+
+[dependencies.c2pa]
+version = "0.60"
+optional = true
+
+
+[dependencies]
+compliance-guard = { path = "../compliance-guard" }
+monitoring-contract = { path = "../monitoring-contract" }
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+base64.workspace = true
+sha2.workspace = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"
