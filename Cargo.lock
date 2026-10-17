@@ -6878,6 +6878,7 @@ dependencies = [
  "chrono",
  "compliance-guard",
  "dioxus",
+ "getrandom 0.2.17",
  "monitoring-contract",
  "serde",
  "thiserror 2.0.21",

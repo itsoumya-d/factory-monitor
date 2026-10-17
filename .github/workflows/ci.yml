@@ -69,7 +69,18 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-deny@0.20.2
-      - run: cargo deny check licenses advisories
+      - run: cargo deny check licenses advisories bans sources
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: swatinem/rust-cache@v2
+      - name: Compile the spatial-studio wasm shell
+        run: cargo check --target wasm32-unknown-unknown -p spatial-studio-ui

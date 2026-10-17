@@ -17,6 +17,9 @@ dioxus = { version = "0.7", features = ["web"] }
 
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
 
+# uuid v7 randomness under wasm (getrandom needs the js backend).
+getrandom = { version = "0.2", features = ["js"] }
+
 [lints.rust]
 unsafe_code = "forbid"
 
