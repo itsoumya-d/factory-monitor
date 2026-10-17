@@ -58,7 +58,7 @@ fn fft_pow2(data: &[f32]) -> Result<Vec<Complex>, DspError> {
     for i in 0..n {
         let j = (i as u32).reverse_bits() >> (u32::BITS - bits);
         if (i as u32) < j {
-            buf.swap(i as usize, j as usize);
+            buf.swap(i, j as usize);
         }
     }
 
@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn fft_matches_naive_dft() {
         let signal: Vec<f32> = (0..8)
-            .map(|t| (libm::cosf(2.0 * core::f32::consts::PI * t as f32 / 8.0)))
+            .map(|t| libm::cosf(2.0 * core::f32::consts::PI * t as f32 / 8.0))
             .collect();
         let fast = fft(&signal).expect("8 is a power of two");
         let naive = dft(&signal, 8);
@@ -120,7 +120,7 @@ mod tests {
     #[test]
     fn non_power_of_two_pads_to_next() {
         let signal: Vec<f32> = (0..12)
-            .map(|t| (libm::cosf(2.0 * core::f32::consts::PI * t as f32 / 6.0)))
+            .map(|t| libm::cosf(2.0 * core::f32::consts::PI * t as f32 / 6.0))
             .collect();
         // The FFT zero-pads to 16 internally, so the reference transform
         // must be the padded series' own 16-point DFT.

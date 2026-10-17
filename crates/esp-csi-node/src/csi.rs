@@ -40,7 +40,7 @@ pub fn sanitize_frame(csi_payload: &[u8]) -> Result<SanitizedCsi, CsiError> {
         return Err(CsiError::TooShortForStrip);
     }
     let rest = &csi_payload[LTF_STRIP_BYTES..];
-    if rest.len() % 2 != 0 {
+    if !rest.len().is_multiple_of(2) {
         return Err(CsiError::NotSubcarrierPairs(rest.len()));
     }
     let n = rest.len() / 2;
@@ -49,7 +49,7 @@ pub fn sanitize_frame(csi_payload: &[u8]) -> Result<SanitizedCsi, CsiError> {
     }
     let mut re = Vec::with_capacity(n);
     let mut im = Vec::with_capacity(n);
-    for pair in rest.chunks_exact(2) {
+    for pair in rest.as_chunks::<2>().0 {
         re.push(pair[0] as i8);
         im.push(pair[1] as i8);
     }

@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn short_series_is_empty_spectrum() {
-        let got = velocity_spectrum(&vec![1.0_f32; 4], 100.0, 0.0523).expect("returns cleanly");
+        let got = velocity_spectrum(&[1.0_f32; 4], 100.0, 0.0523).expect("returns cleanly");
         assert!(got.is_empty());
     }
 

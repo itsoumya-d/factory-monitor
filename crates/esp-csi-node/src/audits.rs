@@ -212,10 +212,8 @@ impl DiagnosableNode for EspCsiProbe {
     }
 
     fn self_audit(&self) -> SensorSelfAuditReport {
-        let run = |pair: (
-            ShortcutControl,
-            fn(&EspCsiProbe) -> Result<Verdict, AuditError>,
-        )| ControlVerdict {
+        type Executor = fn(&EspCsiProbe) -> Result<Verdict, AuditError>;
+        let run = |pair: (ShortcutControl, Executor)| ControlVerdict {
             control: pair.0,
             verdict: (pair.1)(self).unwrap_or(Verdict::NotRun),
             detail: "esp-csi probe audit".into(),
