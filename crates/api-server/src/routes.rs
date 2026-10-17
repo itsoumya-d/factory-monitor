@@ -373,7 +373,9 @@ async fn post_correction(
     )
     .map_err(|e| ApiError::BadRequest(format!("{e:?}")))?;
     let delta = feedback.actual_count - feedback.reported_count;
-    let reward = -(delta as f32) / 100.0;
+    let reward =
+        rl_controller::reward::correction_reward(feedback.reported_count, feedback.actual_count);
+    let _ = delta;
     let row = AuditCorrectionRow {
         correction_id: Uuid::now_v7(),
         feedback,

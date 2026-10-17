@@ -91,7 +91,11 @@ impl DeterministicFusion {
 
     fn softmax(vars: [f32; 3]) -> [f32; 3] {
         let max = vars.iter().copied().fold(f32::MIN, f32::max);
-        let exps: Vec<f32> = vars.iter().map(|v| (v - max).exp()).collect();
+        // Stack-only: the fusion hot path must not allocate per call.
+        let mut exps = [0.0_f32; 3];
+        for (slot, v) in vars.iter().enumerate() {
+            exps[slot] = (v - max).exp();
+        }
         let sum: f32 = exps.iter().sum();
         [exps[0] / sum, exps[1] / sum, exps[2] / sum]
     }

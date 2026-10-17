@@ -7,6 +7,7 @@ pub mod context;
 pub mod error;
 pub mod persistence;
 pub mod policy;
+pub mod reward;
 
 pub use arm::{LinearThompsonArm, POSTERIOR_SPREAD_0, RIDGE};
 pub use context::{
