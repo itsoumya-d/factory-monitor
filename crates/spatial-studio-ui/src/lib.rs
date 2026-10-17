@@ -8,4 +8,3 @@ pub mod scorecard;
 #[cfg(target_family = "wasm")]
 #[path = "ui.rs"]
 pub mod ui;
-
