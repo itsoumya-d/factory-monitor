@@ -16,6 +16,13 @@ pub enum ShortcutControl {
     NearestNeighborLeak,
     /// Temporal-only models must fail when time order is destroyed.
     TemporalOnlyShortcut,
+    /// Empty-room 30 s baseline: with no human present the return is a
+    /// flat, low-energy echo envelope — inflated variance means the
+    /// "empty" frame actually carries scene events (docs/17 §3).
+    EmptyRoomBaseline,
+    /// Door-swing negative control: the impulse/decay signature of a
+    /// physical door transient must NOT promote to a human activity.
+    DoorSwingNegative,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -70,6 +77,8 @@ impl ShortcutControl {
             Self::SubcarrierShuffle,
             Self::NearestNeighborLeak,
             Self::TemporalOnlyShortcut,
+            Self::EmptyRoomBaseline,
+            Self::DoorSwingNegative,
         ]
     }
 }

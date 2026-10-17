@@ -11,6 +11,9 @@ pub struct Config {
     /// HMAC-SHA256 secret for outbound webhooks; env-only, never persisted
     /// (docs/13 §7).
     pub webhook_secret: Option<String>,
+    /// API key guarding mutating routes + snapshot exports. When unset the
+    /// server runs in trust-on-LAN posture (docs/10 §6) and logs a warning.
+    pub api_key: Option<String>,
     pub daily_usd_cap: f64,
     pub ws_capacity: usize,
     pub request_timeout_ms: u64,
@@ -27,6 +30,7 @@ impl Default for Config {
             bind: SocketAddr::from(([0, 0, 0, 0], 8080)),
             database_url: None,
             webhook_secret: None,
+            api_key: None,
             daily_usd_cap: 15.0,
             ws_capacity: 4096,
             request_timeout_ms: 10_000,
@@ -55,6 +59,12 @@ impl Config {
                 return Err("WEBHOOK_SECRET too short (need >= 16 bytes)".to_string());
             }
             cfg.webhook_secret = Some(secret);
+        }
+        if let Ok(key) = std::env::var("SHADO_API_KEY") {
+            if key.len() < 16 {
+                return Err("SHADO_API_KEY too short (need >= 16 bytes)".to_string());
+            }
+            cfg.api_key = Some(key);
         }
         if let Ok(cap) = std::env::var("SHADO_DAILY_USD_CAP") {
             cfg.daily_usd_cap = cap

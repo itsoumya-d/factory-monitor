@@ -156,3 +156,15 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod mag_tests {
+    use super::Complex;
+
+    #[test]
+    fn magnitude_of_complex_is_hypotenuse() {
+        assert!((Complex { re: 3.0, im: 4.0 }.magnitude() - 5.0).abs() < 1e-6);
+        assert!((Complex { re: 0.0, im: 0.0 }.magnitude() - 0.0).abs() < 1e-6);
+    }
+}

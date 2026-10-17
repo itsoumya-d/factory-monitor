@@ -205,6 +205,71 @@ pub fn temporal_only_audit(probe: &EspCsiProbe) -> Result<Verdict, AuditError> {
     Ok(Verdict::Pass)
 }
 
+/// Control 6 — empty-room 30 s baseline (docs/17 §3): with no human
+/// present the CSI return is a flat, low-energy echo envelope. Floated
+/// variance or out-of-scale energy means the "empty" capture actually
+/// carries scene events and any occupancy accuracy built on it is
+/// leakage, not sensing.
+pub fn empty_room_baseline_audit(probe: &EspCsiProbe) -> Result<Verdict, AuditError> {
+    if probe.amplitude_matrix.len() < 3 {
+        return Err(AuditError::TooFewFrames(probe.amplitude_matrix.len()));
+    }
+    let row_means: Vec<f32> = probe.amplitude_matrix.iter().map(|row| mean(row)).collect();
+    let m = mean(&row_means);
+    // Echo-scale band: 1e-2 .. 8.0 normalised amplitude units.
+    if m < 0.05 || m > 8.0 {
+        return Ok(Verdict::Fail);
+    }
+    let cv = {
+        let var = row_means.iter().map(|r| (r - m) * (r - m)).sum::<f32>()
+            / row_means.len().max(1) as f32;
+        var.sqrt() / m
+    };
+    // Flat envelope: coefficient of variation under 0.35.
+    if cv > 0.35 {
+        Ok(Verdict::Fail)
+    } else {
+        Ok(Verdict::Pass)
+    }
+}
+
+/// Control 7 — door-swing negative control (docs/17 §3): a physical
+/// door transient shows up as a single high-energy frame with a fast
+/// decay. The negative control asserts the detector does not promote
+/// that transient to a confident human activity class.
+pub fn door_swing_negative_audit(probe: &EspCsiProbe) -> Result<Verdict, AuditError> {
+    if probe.scores.len() < 3 || probe.amplitude_matrix.len() < 3 {
+        return Err(AuditError::TooFewFrames(
+            probe.scores.len().min(probe.amplitude_matrix.len()),
+        ));
+    }
+    if probe.scores.len() != probe.amplitude_matrix.len() {
+        return Err(AuditError::ShapeMismatch);
+    }
+    let row_means: Vec<f32> = probe.amplitude_matrix.iter().map(|row| mean(row)).collect();
+    // The transient frame: first row exceeding 3× the baseline frame.
+    let base = row_means[0];
+    let spike = row_means
+        .iter()
+        .position(|&r| r > 3.0 * base)
+        .ok_or(AuditError::TooFewFrames(probe.scores.len()))?;
+    // Physically the swing decays right away (>= 80% of the spike gone
+    // in one frame). A door signature that never decays is calibration
+    // drift, not a door.
+    let after = *row_means.get(spike + 1).ok_or(AuditError::ShapeMismatch)?;
+    if after > 0.8 * row_means[spike] {
+        return Ok(Verdict::Fail);
+    }
+    // No confident human fire on the transient window (spike + decay).
+    for score in probe.scores.iter().skip(spike).take(2) {
+        let confidence = score.iter().fold(0.0_f32, |a, &b| a.max(b));
+        if confidence > 0.9 {
+            return Ok(Verdict::Fail);
+        }
+    }
+    Ok(Verdict::Pass)
+}
+
 #[cfg(feature = "std")]
 impl DiagnosableNode for EspCsiProbe {
     fn node_id(&self) -> String {
@@ -231,6 +296,14 @@ impl DiagnosableNode for EspCsiProbe {
                 nearest_neighbor_leak_audit,
             )),
             run((ShortcutControl::TemporalOnlyShortcut, temporal_only_audit)),
+            run((
+                ShortcutControl::EmptyRoomBaseline,
+                empty_room_baseline_audit,
+            )),
+            run((
+                ShortcutControl::DoorSwingNegative,
+                door_swing_negative_audit,
+            )),
         ];
         SensorSelfAuditReport {
             node_id: self.node_id.clone(),
@@ -240,7 +313,7 @@ impl DiagnosableNode for EspCsiProbe {
 }
 
 /// verify the function-pointer fixture form compiles:
-pub const CONTROL_COUNT: usize = 5;
+pub const CONTROL_COUNT: usize = 7;
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
@@ -343,5 +416,132 @@ mod tests {
             vec![0.0, 0.0, 1.0],
         ];
         assert_eq!(temporal_only_audit(&p), Ok(Verdict::Fail));
+    }
+
+    // ---- empty-room baseline ----
+
+    fn calm_empty_probe() -> EspCsiProbe {
+        // 30-frame calm envelope around 0.5 amplitude, tiny jitter.
+        let amp: Vec<Vec<f32>> = (0..30)
+            .map(|t| {
+                (0..8)
+                    .map(|s| 0.5 + 0.02 * ((t * 7 + s * 13) % 5) as f32 - 0.04)
+                    .collect()
+            })
+            .collect();
+        let scores: Vec<Vec<f32>> = amp.iter().map(|_| vec![0.1, 0.1, 0.1]).collect();
+        EspCsiProbe {
+            node_id: "csi-empty-room".into(),
+            amplitude_matrix: amp,
+            scores,
+        }
+    }
+
+    #[test]
+    fn empty_room_passes_on_calm_low_energy_envelope() {
+        let p = calm_empty_probe();
+        assert_eq!(empty_room_baseline_audit(&p), Ok(Verdict::Pass));
+    }
+
+    #[test]
+    fn empty_room_fails_when_energy_out_of_echo_scale() {
+        let mut p = calm_empty_probe();
+        for row in p.amplitude_matrix.iter_mut() {
+            for v in row.iter_mut() {
+                *v += 50.0;
+            }
+        }
+        assert_eq!(empty_room_baseline_audit(&p), Ok(Verdict::Fail));
+    }
+
+    #[test]
+    fn empty_room_fails_when_variance_is_inflated() {
+        let mut p = calm_empty_probe();
+        p.amplitude_matrix[10][0] += 15.0; // someone was in the "empty" room
+        p.amplitude_matrix[20][0] += 10.0;
+        assert_eq!(empty_room_baseline_audit(&p), Ok(Verdict::Fail));
+    }
+
+    // ---- door-swing negative control ----
+
+    fn door_probe(peak_confidences_per_class: f32) -> EspCsiProbe {
+        let mut amp: Vec<Vec<f32>> = (0..6).map(|_| vec![0.5_f32; 8]).collect();
+        amp[2] = vec![2.7; 8]; // swing impulse > 3× base
+        amp[3] = vec![0.6; 8]; // fast decay (< 80% of spike)
+        amp[4] = vec![0.4; 8];
+        let spike_score = vec![peak_confidences_per_class.max(0.5), 0.1, 0.1];
+        let rest = [
+            vec![0.4, 0.4, 0.2],
+            vec![0.4, 0.4, 0.2],
+            spike_score.clone(),
+            vec![0.4, 0.3, 0.3],
+            vec![0.4, 0.4, 0.2],
+        ];
+        let scores: Vec<Vec<f32>> = vec![
+            rest[0].clone(),
+            rest[1].clone(),
+            spike_score.clone(),
+            rest[3].clone(),
+            rest[4].clone(),
+            vec![0.4, 0.4, 0.2],
+        ];
+        EspCsiProbe {
+            node_id: "csi-door".into(),
+            amplitude_matrix: amp,
+            scores,
+        }
+    }
+
+    #[test]
+    fn door_swing_passes_when_transient_not_promoted() {
+        let p = door_probe(0.3);
+        assert_eq!(door_swing_negative_audit(&p), Ok(Verdict::Pass));
+    }
+
+    #[test]
+    fn door_swing_fails_when_human_class_fires_on_transient() {
+        let p = door_probe(0.95);
+        assert_eq!(door_swing_negative_audit(&p), Ok(Verdict::Fail));
+    }
+
+    #[test]
+    fn door_swing_fails_when_impulse_never_decays() {
+        let mut p = door_probe(0.3);
+        p.amplitude_matrix[3] = vec![2.6; 8]; // no decay: not door-shaped
+        assert_eq!(door_swing_negative_audit(&p), Ok(Verdict::Fail));
+    }
+
+    #[test]
+    fn full_battery_runs_all_seven_controls() {
+        // A calm envelope (no door spike) exercises every control — the
+        // door negative comes back NotRun honestly and constant scores
+        // trip the temporal detector on purpose.
+        let report = calm_empty_probe().self_audit();
+        assert_eq!(report.verdicts.len(), CONTROL_COUNT);
+        let mut seen = Vec::new();
+        for v in &report.verdicts {
+            seen.push(v.control);
+        }
+        assert_eq!(seen, ShortcutControl::all_variants());
+        let get = |c: ShortcutControl| -> Verdict {
+            report
+                .verdicts
+                .iter()
+                .find(|v| v.control == c)
+                .expect("control in battery")
+                .verdict
+        };
+        assert_eq!(get(ShortcutControl::EmptyRoomBaseline), Verdict::Pass);
+        assert_eq!(get(ShortcutControl::DoorSwingNegative), Verdict::NotRun);
+        assert_eq!(get(ShortcutControl::TemporalOnlyShortcut), Verdict::Fail);
+        // A real door-transient probe flips the door control to Pass.
+        let door = door_probe(0.3).self_audit().verdicts;
+        assert!(
+            door.iter()
+                .any(|v| v.control == ShortcutControl::DoorSwingNegative
+                    && v.verdict == Verdict::Pass),
+            "{door:?}"
+        );
+        assert_eq!(ShortcutControl::all_variants().len(), CONTROL_COUNT);
     }
 }

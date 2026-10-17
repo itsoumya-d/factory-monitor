@@ -270,3 +270,19 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod transcript_tests {
+    use super::CloneTranscript;
+
+    #[test]
+    fn transcript_records_in_call_order_and_clones() {
+        let mut t = CloneTranscript::new();
+        t.record("a".to_string());
+        t.record("b".to_string());
+        assert_eq!(t.calls, vec!["a".to_string(), "b".to_string()]);
+        let snap = t.clone();
+        assert_eq!(snap.calls, t.calls);
+    }
+}

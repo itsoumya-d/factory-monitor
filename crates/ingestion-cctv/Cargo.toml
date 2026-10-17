@@ -11,7 +11,7 @@ default = []
 itest = []
 
 [dependencies]
-common-types = { path = "../common-types" }
+common-types = { path = "../common-types", version = "0.1.0" }
 tokio = { workspace = true }
 async-trait = { workspace = true }
 chrono = { workspace = true }

@@ -8,7 +8,7 @@ license.workspace = true
 itest = []
 
 [dependencies]
-common-types = { path = "../common-types" }
+common-types = { path = "../common-types", version = "0.1.0" }
 anyhow.workspace = true
 chrono.workspace = true
 nalgebra.workspace = true

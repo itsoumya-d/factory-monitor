@@ -189,3 +189,32 @@ mod tests {
         assert_eq!(back, s);
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod ucb_tests {
+    use super::*;
+
+    #[test]
+    fn ucb_is_bounded_once_pulled() {
+        // Unpulled arm: neutral mean 0.5 + clamped bonus 0.5 = 1.0.
+        let arm = ThresholdArm {
+            tau: 0.5,
+            reward_sum: 0.0,
+            pulls: 0,
+        };
+        assert!((arm.ucb(10) - 1.0).abs() < 1e-6, "{}", arm.ucb(10));
+    }
+
+    #[test]
+    fn ucb_bonus_is_capped_at_half() {
+        let arm = ThresholdArm {
+            tau: 0.5,
+            reward_sum: 1000.0,
+            pulls: 1,
+        };
+        let v = arm.ucb(2);
+        assert!(v.is_finite(), "ucb must stay finite: {v}");
+        assert!((v - 1000.5).abs() < 1e-3, "{}", v);
+    }
+}

@@ -648,7 +648,11 @@ impl Repos for PgRepo {
                AND ($2::timestamptz IS NULL OR ts >= $2)
                AND ($3::timestamptz IS NULL OR ts <= $3)
                AND ($4 = false OR uncertainty_mask <> 0)
-             ORDER BY ts",
+             -- hard server-side row cap: the route never serves more
+             -- than 500 rows and jpeg_lowres blobs make unbounded
+             -- fetches a DoS vector
+             ORDER BY ts
+             LIMIT 500",
         )
         .bind(zone_id.map(|z| z.to_string()))
         .bind(from)

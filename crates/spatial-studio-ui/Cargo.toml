@@ -5,8 +5,8 @@ edition = "2024"
 license.workspace = true
 
 [dependencies]
-monitoring-contract = { path = "../monitoring-contract" }
-compliance-guard = { path = "../compliance-guard" }
+monitoring-contract = { path = "../monitoring-contract", version = "0.1.0" }
+compliance-guard = { path = "../compliance-guard", version = "0.1.0" }
 thiserror.workspace = true
 serde.workspace = true
 chrono.workspace = true
