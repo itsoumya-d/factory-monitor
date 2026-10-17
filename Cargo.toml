@@ -6,6 +6,7 @@ members = [
     "crates/ingestion-wifi",
     "crates/inference-engine",
     "crates/rl-controller",
+    "crates/vlm-orchestrator",
 ]
 
 [workspace.package]
