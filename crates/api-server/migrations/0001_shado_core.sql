@@ -2,6 +2,12 @@
 -- statement below is guarded so the extension being absent degrades to
 -- plain tables instead of failing the boot.
 
+DO $$ BEGIN
+  CREATE EXTENSION IF NOT EXISTS timescaledb;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'timescaledb extension unavailable; refusing hypertables';
+END $$;
+
 CREATE TABLE zones (
   zone_id TEXT PRIMARY KEY,
   display_name TEXT NOT NULL,

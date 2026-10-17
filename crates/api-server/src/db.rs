@@ -54,7 +54,7 @@ impl PgRepo {
             .connect(url)
             .await
             .map_err(|e| e.to_string())?;
-        run_migrations(&pool).await;
+        run_migrations(&pool).await?;
         Ok(Self { pool })
     }
 }
@@ -63,22 +63,22 @@ const MIGRATION_0001: &str = include_str!("../migrations/0001_shado_core.sql");
 
 /// Docs/11 migrations, wrapped in a transaction (§conventions). The
 /// TimescaleDB statements inside are extension-guarded so a plain pg
-/// degrades instead of failing boot.
-async fn run_migrations(pool: &sqlx::PgPool) {
-    let mut tx = match pool.begin().await {
-        Ok(tx) => tx,
-        Err(e) => {
-            tracing::error!("migration tx begin failed: {e}");
-            return;
-        }
-    };
-    match sqlx::query(MIGRATION_0001).execute(&mut *tx).await {
-        Ok(_) => tracing::info!("migration 0001_shado_core applied"),
-        Err(e) => tracing::error!("migration 0001 failed: {e}"),
-    }
-    if let Err(e) = tx.commit().await {
-        tracing::error!("migration tx commit failed: {e}");
-    }
+/// degrades instead of failing boot. `raw_sql` uses the simple protocol
+/// so the full multi-statement batch parses in one go.
+async fn run_migrations(pool: &sqlx::PgPool) -> Result<(), String> {
+    let mut tx = pool
+        .begin()
+        .await
+        .map_err(|e| format!("migration tx begin: {e}"))?;
+    sqlx::raw_sql(MIGRATION_0001)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| format!("migration 0001 failed: {e}"))?;
+    tx.commit()
+        .await
+        .map_err(|e| format!("migration tx commit: {e}"))?;
+    tracing::info!("migration 0001_shado_core applied");
+    Ok(())
 }
 
 fn parse_state(raw: &str) -> Option<LifecycleState> {
