@@ -1,0 +1,31 @@
+[package]
+name = "vlm-orchestrator"
+version = "0.1.0"
+edition = "2024"
+license.workspace = true
+
+[features]
+default = []
+fine_tune = []
+itest = []
+
+[dependencies]
+common-types = { path = "../common-types" }
+anyhow.workspace = true
+async-trait.workspace = true
+base64.workspace = true
+chrono.workspace = true
+image.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"
