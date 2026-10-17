@@ -35,6 +35,12 @@ deny = []
 [advisories]
 version = 2
 yanked = "warn"
+ignore = [
+    # paste (proc-macro, codegen-only) is unmaintained (RUSTSEC-2024-0436);
+    # pulled via nalgebra → simba for the 8-dim Kalman state. No runtime
+    # impact; revisit if nalgebra drops simba.
+    { id = "RUSTSEC-2024-0436", reason = "unmaintained codegen-only proc-macro via nalgebra/simba" },
+]
 
 [sources]
 unknown-registry = "deny"
