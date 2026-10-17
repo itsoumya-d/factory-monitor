@@ -62,6 +62,7 @@ BEGIN
     PERFORM create_hypertable('count_events', 'ts_from', chunk_time_interval => INTERVAL '1 day', if_not_exists => TRUE);
     PERFORM add_retention_policy('count_events', INTERVAL '180 days', if_not_exists => TRUE);
     ALTER TABLE count_events SET (
+      timescaledb.compress = true,
       timescaledb.compress_segmentby = 'zone_id',
       timescaledb.compress_orderby = 'ts_from DESC');
     PERFORM add_compression_policy('count_events', INTERVAL '7 days', if_not_exists => TRUE);
