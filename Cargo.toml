@@ -1,6 +1,10 @@
 [workspace]
 resolver = "3"
-members = ["crates/common-types"]
+members = [
+    "crates/common-types",
+    "crates/ingestion-cctv",
+    "crates/ingestion-wifi",
+]
 
 [workspace.package]
 edition = "2024"

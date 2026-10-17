@@ -1,0 +1,34 @@
+[package]
+name = "ingestion-cctv"
+edition.workspace = true
+rust-version.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Shado CCTV ingestion: frame sources, luminance trigger, golden-baseline SSIM, frame ring"
+
+[features]
+default = []
+itest = []
+
+[dependencies]
+common-types = { path = "../common-types" }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+image = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tempfile = "3"
+proptest = { workspace = true }
+chrono = { workspace = true }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"

@@ -1,0 +1,33 @@
+[package]
+name = "ingestion-wifi"
+edition.workspace = true
+rust-version.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Shado Wi-Fi CSI ingestion: packet parsing, phase sanitization, FFT features, sliding windows"
+
+[features]
+default = []
+itest = []
+
+[dependencies]
+common-types = { path = "../common-types" }
+tokio = { workspace = true }
+rustfft = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+chrono = { workspace = true }
+tempfile = "3"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"
