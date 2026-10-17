@@ -30,6 +30,13 @@ Phase 5 (voice)  → vlm-orchestrator (morning diff, root-cause, COCO export) + 
 Phase 6 (ship)   → api-server routes, WS, webhooks, persistence, boot order
 Phase 7 (eyes)   → dashboard live + audit + report
 Phase 8 (steel)  → real hardware soak (L4), fine-tune feature flag, hot-swap, guardrail drills
+// Universal-platform extension (docs/16, charter of record):
+Phase 9  (rules) → monitoring-contract crate + example contracts + ROI bridge
+Phase 10 (chat)  → onboarding-agent: rig-core discovery → contract compiler
+Phase 11 (check) → node-diagnostics: DiagnosableNode, orchestrator, HITL canary
+Phase 12 (vocab) → two-tier open-vocab vision (ort + TextPromptBackend)
+Phase 13 (heal)  → three-speed self-healing integration (prompt patch + replay)
+Phase 14 (chat-ui) → universal dashboard/chat surface (Next.js)
 ```
 
 Each phase: **write tests → implement → green on `test-debug` → merge `main`.** Never skip phases; phases can, however, run in sub-branches off `test-debug` (`td/<phase>-<topic>`), e.g. `td/7-dashboard-correctform`.
