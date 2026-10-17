@@ -1,0 +1,24 @@
+# Build artifacts
+/target/
+dist/
+.next/
+node_modules/
+
+# Data & secrets
+data/
+config/*.local.toml
+*.local.toml
+.env
+.env.*
+!.env.example
+fixtures/*.h264
+fixtures/csi_*.npy
+
+# Logs / taps
+taps/
+*.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
