@@ -31,6 +31,11 @@ impl ThresholdArm {
         }
     }
 
+    /// Pessimistic UCB1: untried arms get a FIXED +0.5 exploration cap
+    /// (bonus = min(0.5, 4·√(ln(total+1)/pulls))) and a neutral 0.5 mean,
+    /// so untried arms top out at 1.0 — exploration is provably bounded
+    /// inside the doc/10 guardrail instead of driving untried arms to
+    /// infinity like vanilla UCB1.
     pub fn ucb(&self, total_pulls: u32) -> f32 {
         let bonus =
             (4.0 * ((total_pulls as f32 + 1.0).ln() / self.pulls.max(1) as f32).sqrt()).min(0.5);

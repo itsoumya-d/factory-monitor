@@ -5,6 +5,7 @@
 pub mod agent;
 pub mod fieldbus;
 pub mod jwt;
+pub mod kpi_feeder;
 pub mod moqt;
 pub mod opcua_plan;
 pub mod tpm;
