@@ -90,14 +90,6 @@ CREATE TABLE uncertain_snapshots (
 CREATE INDEX uncertain_snapshots_promotion_ts ON uncertain_snapshots (promotion, ts DESC);
 CREATE INDEX uncertain_snapshots_zone_ts ON uncertain_snapshots (zone_id, ts DESC);
 
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'timescaledb') THEN
-    PERFORM create_hypertable('csi_metrics', 'ts', if_not_exists => TRUE);
-    PERFORM add_retention_policy('csi_metrics', INTERVAL '90 days', if_not_exists => TRUE);
-  END IF;
-END $$;
-
 CREATE TABLE csi_metrics (
   node_id SMALLINT NOT NULL,
   zone_id TEXT NOT NULL,
@@ -110,6 +102,15 @@ CREATE TABLE csi_metrics (
   ptp_offset_ns BIGINT,
   PRIMARY KEY (node_id, ts)
 );
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'timescaledb') THEN
+    PERFORM create_hypertable('csi_metrics', 'ts', if_not_exists => TRUE);
+    PERFORM add_retention_policy('csi_metrics', INTERVAL '90 days', if_not_exists => TRUE);
+  END IF;
+END $$;
+
 
 CREATE TABLE audit_corrections (
   correction_id UUID PRIMARY KEY,
