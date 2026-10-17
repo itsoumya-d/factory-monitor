@@ -172,3 +172,22 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod facts_tests {
+    use super::*;
+
+    #[test]
+    fn fact_helpers_track_independence() {
+        let f = SiteFacts {
+            jetson_engines_ready: true,
+            tpm_handle_ready: false,
+            espnow_lock: Some((2412, 1000)),
+            discovery_cameras: 0,
+            draft: None,
+        };
+        assert!(!f.primitives_ready(), "tpm missing blocks primitives");
+        assert!(!f.sync_and_ready(), "absent cameras/draft block sync");
+    }
+}

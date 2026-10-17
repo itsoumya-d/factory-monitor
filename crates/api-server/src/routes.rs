@@ -100,6 +100,10 @@ pub fn build_router(state: Shared) -> Router {
         .route("/api/v1/snapshots/query", post(query_snapshots))
         .route("/api/v1/labeling/queue", get(get_label_queue))
         .route("/ws/live", get(ws_live))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            require_api_key,
+        ))
         .with_state(state)
         .layer(with_counts)
         .layer(TimeoutLayer::with_status_code(
@@ -111,6 +115,37 @@ pub fn build_router(state: Shared) -> Router {
 }
 
 // ------------------- health / ops -------------------
+
+/// Constant-time byte equality (folded XOR) so key checks do not leak
+/// prefix length through early exits.
+pub fn ct_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for (&x, &y) in a.iter().zip(b.iter()) {
+        diff |= x ^ y;
+    }
+    diff == 0
+}
+
+/// Guards mutating routes + operator exports while `SHADO_API_KEY` is
+/// set; with no key configured the server keeps the docs/10 §6
+/// trust-on-LAN posture.
+async fn require_api_key(State(state): State<Shared>, req: Request<Body>, next: Next) -> Response {
+    let Some(key) = state.cfg.api_key.clone() else {
+        return next.run(req).await;
+    };
+    let provided = req
+        .headers()
+        .get("x-shado-api-key")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+    match provided {
+        Some(got) if ct_eq(got.as_bytes(), key.as_bytes()) => next.run(req).await,
+        _ => ApiError::Unauthorized.into_response(),
+    }
+}
 
 async fn healthz() -> impl IntoResponse {
     (StatusCode::OK, Json(json!({"status": "ok"})))

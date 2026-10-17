@@ -16,7 +16,7 @@ unsafe_code = "forbid"
 unwrap_used = "warn"
 
 [dependencies]
-common-types = { path = "../common-types" }
+common-types = { path = "../common-types", version = "0.1.0" }
 async-trait.workspace = true
 ndarray.workspace = true
 lapjv.workspace = true

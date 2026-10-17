@@ -37,8 +37,8 @@ optional = true
 
 
 [dependencies]
-compliance-guard = { path = "../compliance-guard" }
-monitoring-contract = { path = "../monitoring-contract" }
+compliance-guard = { path = "../compliance-guard", version = "0.1.0" }
+monitoring-contract = { path = "../monitoring-contract", version = "0.1.0" }
 thiserror.workspace = true
 serde.workspace = true
 serde_json.workspace = true

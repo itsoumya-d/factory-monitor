@@ -619,6 +619,8 @@ impl Repos for InMemoryRepo {
             })
             .cloned()
             .collect::<Vec<_>>();
+        // Hard row cap matching the SQL LIMIT 500 in db.rs.
+        rows.truncate(500);
         rows.sort_by_key(|s| s.ts);
         Ok(rows)
     }

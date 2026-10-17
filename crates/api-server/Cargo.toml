@@ -18,9 +18,9 @@ default = []
 itest = []
 
 [dependencies]
-common-types = { path = "../common-types" }
-rl-controller = { path = "../rl-controller" }
-vlm-orchestrator = { path = "../vlm-orchestrator" }
+common-types = { path = "../common-types", version = "0.1.0" }
+rl-controller = { path = "../rl-controller", version = "0.1.0" }
+vlm-orchestrator = { path = "../vlm-orchestrator", version = "0.1.0" }
 anyhow.workspace = true
 async-trait.workspace = true
 axum = { workspace = true, features = ["ws"] }
