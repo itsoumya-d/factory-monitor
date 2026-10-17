@@ -7,4 +7,6 @@ pub mod annex3;
 pub mod article5;
 pub mod dp;
 pub mod node_diag;
+
+pub use node_diag::DiagnosableNode;
 pub mod validate;

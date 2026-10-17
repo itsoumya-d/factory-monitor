@@ -8,6 +8,14 @@ license.workspace = true
 thiserror.workspace = true
 libm = "0.2"
 
+[features]
+default = ["std"]
+std = ["dep:compliance-guard"]
+
+[dependencies.compliance-guard]
+path = "../compliance-guard"
+optional = true
+
 [target.'cfg(target_arch = "xtensa")'.dependencies]
 
 esp-hal = { version = "~1.2", features = ["esp32s3"] }

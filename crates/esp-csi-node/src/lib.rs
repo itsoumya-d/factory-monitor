@@ -4,6 +4,13 @@
 
 #![cfg_attr(not(test), no_std)]
 
+// Memory allocations for no_std device builds (std/test builds get the
+// std prelude for the same names).
+#[cfg(not(test))]
+extern crate alloc;
+#[cfg(not(test))]
+pub use alloc::{format, string::String, vec, vec::Vec};
+
 pub mod audits;
 pub mod capability;
 pub mod csi;
@@ -14,4 +21,3 @@ pub mod velocity;
 
 #[cfg(target_arch = "xtensa")]
 pub mod device;
-

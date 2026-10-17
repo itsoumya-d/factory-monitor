@@ -6,4 +6,3 @@ pub mod fusion;
 pub mod speed1;
 pub mod speed2;
 pub mod speed3;
-
