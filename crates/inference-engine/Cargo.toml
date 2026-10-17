@@ -1,0 +1,32 @@
+[package]
+name = "inference-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[features]
+default = []
+itest = []
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "warn"
+
+[dependencies]
+common-types = { path = "../common-types" }
+async-trait.workspace = true
+ndarray.workspace = true
+lapjv.workspace = true
+nalgebra.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
