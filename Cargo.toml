@@ -4,6 +4,7 @@ members = [
     "crates/common-types",
     "crates/ingestion-cctv",
     "crates/ingestion-wifi",
+    "crates/inference-engine",
 ]
 
 [workspace.package]
@@ -42,7 +43,7 @@ gstreamer-video = "0.23"
 pcap = "2"
 tokio-serial = "5"
 qdrant-client = "1.13"
-lapjv = "0.1"
+lapjv = "0.3"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 base64 = "0.22"
 prometheus = { version = "0.14", features = ["process"] }
