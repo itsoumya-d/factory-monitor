@@ -37,6 +37,45 @@ pub trait FusionRuntime {
 
 pub const TOKEN_DIM: usize = 3;
 
+/// Layer A → B data contract (docs/17 D3): the three semantic features
+/// esp-csi-node derives per frame — Doppler speed, recurrence-plot
+/// variance, normalized echo energy — packed for the fusion seam. Plain
+/// data: edge-core never needs the vendor esp-csi crates to build.
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CsiToken {
+    /// m/s from the Doppler velocity spectrum dominant bin.
+    pub velocity_ms: f32,
+    /// RP grid variance (movement texture).
+    pub rp_variance: f32,
+    /// Mean subcarrier amplitude of the frame.
+    pub amplitude_energy: f32,
+}
+
+impl CsiToken {
+    pub fn try_new(
+        velocity_ms: f32,
+        rp_variance: f32,
+        amplitude_energy: f32,
+    ) -> Result<Self, FusionError> {
+        if !(velocity_ms.is_finite() && rp_variance.is_finite() && amplitude_energy.is_finite()) {
+            return Err(FusionError::CsiDim {
+                want: TOKEN_DIM,
+                got: usize::MAX,
+            });
+        }
+        Ok(Self {
+            velocity_ms,
+            rp_variance,
+            amplitude_energy,
+        })
+    }
+
+    /// Token layout the runtime wants — one component per TOKEN_DIM slot.
+    pub fn features(&self) -> [f32; TOKEN_DIM] {
+        [self.velocity_ms, self.rp_variance, self.amplitude_energy]
+    }
+}
+
 /// Deriving-style softmax over projected channel means; weights fuse the
 /// three channels with a deterministic A matrix (no randomness).
 pub struct DeterministicFusion {
@@ -150,5 +189,44 @@ mod tests {
             .enumerate()
             .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Equal));
         assert_eq!(strongest.expect("weights").0, 2);
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod csi_token_tests {
+    use super::*;
+
+    #[test]
+    fn csi_token_features_feed_fusion_seam() {
+        let tok = CsiToken::try_new(0.35, 0.02, 0.9).expect("finite token");
+        assert_eq!(tok.features().len(), TOKEN_DIM);
+        let fusion = DeterministicFusion::new(TOKEN_DIM);
+        let out = fusion
+            .cross_modal_attention(&[0.1, 0.2, 0.3], &[0.3, 0.2, 0.1], &tok.features())
+            .expect("fusion");
+        assert!(out.channel_weights[2] > 0.0, "{out:?}");
+        let sum = out.channel_weights.iter().sum::<f32>();
+        assert!((sum - 1.0).abs() < 1e-4, "softmax normalized: {sum}");
+    }
+
+    #[test]
+    fn csi_token_rejects_non_finite_features() {
+        assert!(matches!(
+            CsiToken::try_new(f32::NAN, 0.0, 0.5),
+            Err(FusionError::CsiDim { .. })
+        ));
+        assert!(matches!(
+            CsiToken::try_new(0.0, f32::INFINITY, 0.5),
+            Err(FusionError::CsiDim { .. })
+        ));
+    }
+
+    #[test]
+    fn csi_token_roundtrips_serde() {
+        let tok = CsiToken::try_new(0.4, 0.03, 0.2).expect("token");
+        let s = serde_json::to_string(&tok).expect("json");
+        let back: CsiToken = serde_json::from_str(&s).expect("parse");
+        assert_eq!(back, tok);
     }
 }
