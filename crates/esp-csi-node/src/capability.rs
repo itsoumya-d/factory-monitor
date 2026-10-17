@@ -38,10 +38,10 @@ pub enum CapabilityError {
 
 impl Topology {
     pub fn validate(&self) -> Result<(), CapabilityError> {
-        if let Self::Mesh { peers } = self {
-            if *peers < 3 {
-                return Err(CapabilityError::MeshTooSmall(*peers));
-            }
+        if let Self::Mesh { peers } = self
+            && *peers < 3
+        {
+            return Err(CapabilityError::MeshTooSmall(*peers));
         }
         Ok(())
     }
