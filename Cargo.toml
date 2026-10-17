@@ -5,6 +5,7 @@ members = [
     "crates/ingestion-cctv",
     "crates/ingestion-wifi",
     "crates/inference-engine",
+    "crates/rl-controller",
 ]
 
 [workspace.package]
@@ -49,6 +50,7 @@ base64 = "0.22"
 prometheus = { version = "0.14", features = ["process"] }
 config = { version = "0.15", features = ["toml", "environment"] }
 rand = "0.9"
+rand_distr = "0.5"
 crossbeam-channel = "0.5"
 rtrb = "0.3"
 

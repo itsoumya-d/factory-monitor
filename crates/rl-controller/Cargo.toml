@@ -1,0 +1,29 @@
+[package]
+name = "rl-controller"
+version = "0.1.0"
+edition = "2024"
+license.workspace = true
+
+[features]
+itest = []
+
+[dependencies]
+common-types = { path = "../common-types" }
+anyhow.workspace = true
+chrono.workspace = true
+nalgebra.workspace = true
+rand.workspace = true
+rand_distr.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tokio.workspace = true
+async-trait.workspace = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"
