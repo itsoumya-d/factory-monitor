@@ -6,26 +6,22 @@ import LiveThroughputChart from "@/components/LiveThroughputChart";
 import BottleneckHeatmap from "@/components/BottleneckHeatmap";
 import type { HourlyResponse, HourlyRow } from "@/lib/series";
 import { fromHourlyPoints } from "@/lib/series";
-
-export interface PendingWindow {
-  zone_id: string;
-  ts_from: string;
-  ts_to: string;
-  reported: number;
-  actual: number | null;
-}
+import type { PendingCorrectionRow } from "@/lib/types";
 
 /** Hourly rollups from the Rust counting API (docs/10): one fetch per zone,
- *  zones discovered from the pending audit queue. */
+ *  zones discovered from submitted corrections awaiting commit. */
 export default function ReportFor({ date }: { date: string }) {
   const valid = /^\d{4}-\d{2}-\d{2}$/.test(date);
 
   const pendingQ = useQuery({
     queryKey: ["audit-pending"],
-    queryFn: () => apiFetch<{ pending: PendingWindow[] }>("/api/v1/audit/pending"),
+    queryFn: () =>
+      apiFetch<{ pending: PendingCorrectionRow[] }>("/api/v1/audit/pending"),
     enabled: valid,
   });
-  const zones = [...new Set((pendingQ.data?.pending ?? []).map((p) => p.zone_id))].sort();
+  const zones = [
+    ...new Set((pendingQ.data?.pending ?? []).map((r) => r.feedback.zone_id)),
+  ].sort();
 
   const hourlies = useQueries({
     queries: zones.map((z) => ({

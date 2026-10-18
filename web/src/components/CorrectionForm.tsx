@@ -1,23 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { apiFetch } from "@/lib/live";
-import type { CorrectionResult, PendingWindow } from "@/lib/types";
+import type { CorrectionResult } from "@/lib/types";
 import { FAILURE_TAGS, encodeFailureTags, needsBigSwingConfirmation, rewardPreview } from "@/lib/formats";
 
 /**
- * Multi-step correction flow (docs/12 §3): zone → window → counts → tags →
- * notes → submit. The bad-delta guard (>25% swing) shows the confirmation
+ * Correction submission (docs/08 §3): operator types the zone window and the
+ * true count. The bad-delta guard (>25% swing) shows the confirmation
  * question and makes the retrain checkbox mandatory before submit unlocks.
+ * POST body matches the Rust CorrectionSubmit extractor exactly.
  */
-export default function CorrectionForm({ windows }: { windows: PendingWindow[] }) {
-  const zones = useMemo(
-    () => [...new Set(windows.map((w) => w.zone_id))],
-    [windows],
-  );
-  const [zone, setZone] = useState<string>("");
-  const [win, setWin] = useState<PendingWindow | null>(null);
+export default function CorrectionForm() {
+  const [zone, setZone] = useState("");
+  const [reported, setReported] = useState<number | "">("");
   const [actual, setActual] = useState<number | "">("");
+  const [tsFrom, setTsFrom] = useState("");
+  const [tsTo, setTsTo] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [wantsRetrain, setWantsRetrain] = useState(false);
@@ -25,41 +24,46 @@ export default function CorrectionForm({ windows }: { windows: PendingWindow[] }
   const [last, setLast] = useState<CorrectionResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  const zoneWindows = windows.filter((w) => w.zone_id === zone);
-  const reported = win?.predicted_count ?? 0;
-  const swing = needsBigSwingConfirmation(reported, Number(actual));
-  const reward = rewardPreview(reported, Number(actual));
+  const swing = needsBigSwingConfirmation(Number(reported), Number(actual));
+  const reward = rewardPreview(Number(reported), Number(actual));
 
   const toggleTag = (t: string) =>
     setTags((existing) =>
       existing.includes(t) ? existing.filter((x) => x !== t) : [...existing, t],
     );
 
-  const ready = Number.isFinite(Number(actual)) && actual !== "";
-  const blocked = !win || !ready || (swing && (!confirmSwing || !wantsRetrain));
+  const countsReady = reported !== "" && actual !== "" && zone.trim() !== "";
+  const blocked = !countsReady || (swing && (!confirmSwing || !wantsRetrain));
+
+  /** datetime-local value → wire ISO (RFC3339 with Z). */
+  const toIso = (local: string): string | null => {
+    if (!local) return null;
+    const d = new Date(local);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  };
 
   async function submit() {
-    if (!win) return;
+    const from = toIso(tsFrom);
+    const to = toIso(tsTo);
     try {
-      const body = {
-        zone_id: win.zone_id,
-        reported_count: win.predicted_count,
-        actual_count: Number(actual),
-        ts_from: win.ts_from,
-        ts_to: win.ts_to,
-        failure_tags: encodeFailureTags(tags),
-        notes: notes || null,
-        operator_id: "operator", // replaced by SSO identity at auth merge
-        wants_retrain: wantsRetrain,
-      };
       const res = await apiFetch<CorrectionResult>("/api/v1/audit/corrections", {
         method: "POST",
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          zone_id: zone.trim(),
+          reported_count: Number(reported),
+          actual_count: Number(actual),
+          ts_from: from,
+          ts_to: to,
+          failure_tags: encodeFailureTags(tags),
+          notes: notes || null,
+          operator_id: "operator", // replaced by SSO identity at auth merge
+          wants_retrain: wantsRetrain,
+        }),
       });
       setLast(res);
       setErr(null);
     } catch (e) {
-      setErr(String(e).replace(/^Error:\s*/, ""));
+      setErr(e instanceof Error ? e.message : String(e));
     }
   }
 
@@ -74,52 +78,65 @@ export default function CorrectionForm({ windows }: { windows: PendingWindow[] }
     >
       <h3 className="text-sm font-semibold text-zinc-200">Submit a correction</h3>
 
-      <label htmlFor="zone-select" className="block text-xs text-zinc-400">Zone</label>
-      <select
+      <label htmlFor="zone-select" className="block text-xs text-zinc-400">Zone id</label>
+      <input
         id="zone-select"
         data-testid="zone-select"
-        className="w-full rounded bg-zinc-800 px-2 py-1.5 text-zinc-100"
+        className="w-56 rounded bg-zinc-800 px-2 py-1.5 font-mono text-zinc-100"
         value={zone}
-        onChange={(e) => {
-          setZone(e.target.value);
-          setWin(null);
-        }}
-      >
-        <option value="" />
-        {zones.map((z) => (
-          <option key={z} value={z}>{z}</option>
-        ))}
-      </select>
-
-      <label htmlFor="window-select" className="block text-xs text-zinc-400">Window</label>
-      <select
-        id="window-select"
-        data-testid="window-select"
-        className="w-full rounded bg-zinc-800 px-2 py-1.5 text-zinc-100"
-        value={win?.window_id ?? ""}
-        onChange={(e) =>
-          setWin(zoneWindows.find((w) => w.window_id === e.target.value) ?? null)
-        }
-      >
-        <option value="" />
-        {zoneWindows.map((w) => (
-          <option key={w.window_id} value={w.window_id}>
-            {w.ts_from} → {w.ts_to} · predicted {w.predicted_count}
-          </option>
-        ))}
-      </select>
-
-      <label htmlFor="actual-input" className="block text-xs text-zinc-400">
-        Actual count (predicted {reported})
-      </label>
-      <input
-        id="actual-input"
-        data-testid="actual-input"
-        type="number"
-        className="w-32 rounded bg-zinc-800 px-2 py-1.5 text-right font-mono text-zinc-100"
-        value={actual}
-        onChange={(e) => setActual(e.target.value === "" ? "" : Number(e.target.value))}
+        onChange={(e) => setZone(e.target.value)}
+        placeholder="line_1"
       />
+
+      <div className="flex gap-3">
+        <div>
+          <label htmlFor="ts-from" className="block text-xs text-zinc-400">Window from</label>
+          <input
+            id="ts-from"
+            data-testid="ts-from"
+            type="datetime-local"
+            className="rounded bg-zinc-800 px-2 py-1.5 text-zinc-100"
+            value={tsFrom}
+            onChange={(e) => setTsFrom(e.target.value)}
+          />
+        </div>
+        <div>
+          <label htmlFor="ts-to" className="block text-xs text-zinc-400">Window to</label>
+          <input
+            id="ts-to"
+            data-testid="ts-to"
+            type="datetime-local"
+            className="rounded bg-zinc-800 px-2 py-1.5 text-zinc-100"
+            value={tsTo}
+            onChange={(e) => setTsTo(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <div>
+          <label htmlFor="reported-input" className="block text-xs text-zinc-400">Reported count</label>
+          <input
+            id="reported-input"
+            data-testid="reported-input"
+            type="number"
+            className="w-32 rounded bg-zinc-800 px-2 py-1.5 text-right font-mono text-zinc-100"
+            value={reported}
+            onChange={(e) => setReported(e.target.value === "" ? "" : Number(e.target.value))}
+          />
+        </div>
+        <div>
+          <label htmlFor="actual-input" className="block text-xs text-zinc-400">Actual count</label>
+          <input
+            id="actual-input"
+            data-testid="actual-input"
+            type="number"
+            className="w-32 rounded bg-zinc-800 px-2 py-1.5 text-right font-mono text-zinc-100"
+            value={actual}
+            onChange={(e) => setActual(e.target.value === "" ? "" : Number(e.target.value))}
+          />
+        </div>
+      </div>
 
       <fieldset className="flex flex-wrap gap-2">
         <legend className="mb-1 text-xs text-zinc-400">Failure tags</legend>
@@ -172,7 +189,7 @@ export default function CorrectionForm({ windows }: { windows: PendingWindow[] }
 
       {swing && (
         <p data-testid="swing-warning" className="text-xs font-semibold text-amber-400">
-          Bad-delta guard: |actual − predicted| &gt; 25% of {reported}. Confirm
+          Bad-delta guard: |actual − reported| &gt; 25% of {reported}. Confirm
           the swing and tick “wants retrain”.
         </p>
       )}

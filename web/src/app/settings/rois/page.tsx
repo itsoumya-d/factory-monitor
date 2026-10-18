@@ -1,21 +1,23 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch, useLive } from "@/lib/live";
 import RoiEditor from "@/components/RoiEditor";
-import type { PendingWindow } from "@/lib/types";
+import type { PendingCorrectionRow } from "@/lib/types";
 
 /** ROI editor (docs/12 §2 /settings/rois): zones from the live feed, with
  * a one-shot fallback to /api/v1/audit/pending zone ids. */
 export default function RoisPage() {
-  const liveZones = useLive((s) => [...s.counts.keys()]);
+  const countsMap = useLive((s) => s.counts);
+  const liveZones = useMemo(() => [...countsMap.keys()], [countsMap]);
   const { data } = useQuery({
     queryKey: ["pending-zones"],
-    queryFn: () => apiFetch<{ pending: PendingWindow[] }>("/api/v1/audit/pending"),
+    queryFn: () => apiFetch<{ pending: PendingCorrectionRow[] }>("/api/v1/audit/pending"),
     retry: 1,
     staleTime: 60_000,
   });
-  const fallbackZones = [...new Set((data?.pending ?? []).map((w) => w.zone_id))];
+  const fallbackZones = [...new Set((data?.pending ?? []).map((r) => r.feedback.zone_id))];
   const zones = [...new Set([...liveZones, ...fallbackZones])];
 
   return (

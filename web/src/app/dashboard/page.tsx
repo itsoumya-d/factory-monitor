@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useLive } from "@/lib/live";
 import ZoneCard from "@/components/ZoneCard";
 import CounterTicker from "@/components/CounterTicker";
@@ -8,8 +8,10 @@ import LifecycleStrip from "@/components/LifecycleStrip";
 
 /** Live ops (docs/12 §2 /dashboard): zone cards, ticker, health strip. */
 export default function DashboardPage() {
-  const zones = useLive((s) => [...s.counts.values()]);
-  const health = useLive((s) => [...s.health.values()]);
+  const countsMap = useLive((s) => s.counts);
+  const healthMap = useLive((s) => s.health);
+  const zones = useMemo(() => [...countsMap.values()], [countsMap]);
+  const health = useMemo(() => [...healthMap.values()], [healthMap]);
 
   // Demo zones appear the first time the feed opens.
   useEffect(() => {

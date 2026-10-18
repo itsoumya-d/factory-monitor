@@ -1,32 +1,52 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/live";
-import type { PendingWindow } from "@/lib/types";
+import type { PendingCorrectionRow } from "@/lib/types";
 import CorrectionForm from "@/components/CorrectionForm";
+import CorrectionCommitQueue from "@/components/CorrectionCommitQueue";
 
-/** Corrections tab (docs/12 §2 /audit): pending windows + the form. */
+/** Corrections desk (docs/12 §2 /audit, grounded on the docs/10 wire):
+ *  submit new corrections + commit the pending ones (reward lands at commit). */
 export default function AuditPage() {
-  const { data, error, isLoading } = useQuery({
+  const queryClient = useQueryClient();
+  const pending = useQuery({
     queryKey: ["pending"],
-    queryFn: () => apiFetch<{ pending: PendingWindow[] }>("/api/v1/audit/pending"),
+    queryFn: () =>
+      apiFetch<{ pending: PendingCorrectionRow[] }>("/api/v1/audit/pending"),
     retry: 1,
+    refetchInterval: 30_000,
   });
+
+  const remove = (correctionId: string) => {
+    queryClient.setQueryData<{ pending: PendingCorrectionRow[] }>(["pending"], (prev) =>
+      prev
+        ? { pending: prev.pending.filter((r) => r.correction_id !== correctionId) }
+        : prev,
+    );
+  };
+
+  const rows = (pending.data?.pending ?? []).filter((r) => r.outcome === "submitted");
 
   return (
     <div className="space-y-4" data-testid="audit-page">
       <h1 className="text-lg font-semibold text-zinc-100">Corrections</h1>
-      {isLoading && <p className="text-sm text-zinc-500">loading pending windows…</p>}
-      {error && (
-        <p data-testid="audit-offline" className="text-sm text-red-400">
-          backend unreachable ({String(error).match(/\d+/)?.[0] ?? "?"}) — start the
-          Rust server to fetch live windows
+      <CorrectionForm />
+      {pending.isLoading && (
+        <p data-testid="pending-loading" className="text-sm text-zinc-500">
+          loading pending commits…
         </p>
       )}
-      {data && <CorrectionForm windows={data.pending ?? []} />}
-      {data && data.pending.length === 0 && (
+      {pending.error && (
+        <p data-testid="audit-offline" className="text-sm text-red-400">
+          backend unreachable ({String(pending.error).match(/\d+/)?.[0] ?? "?"}) — start
+          the Rust server to fetch pending commits
+        </p>
+      )}
+      <CorrectionCommitQueue rows={rows} onDone={remove} />
+      {pending.data && rows.length === 0 && (
         <p data-testid="audit-clear" className="text-sm text-lime-300">
-          no windows need review — all clear
+          no pending commits — all clear
         </p>
       )}
     </div>
