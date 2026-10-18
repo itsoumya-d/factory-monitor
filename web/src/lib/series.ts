@@ -9,6 +9,30 @@ export interface HourlyRow {
   delta: number;
 }
 
+/** Hour bucket exactly as the Rust agg module serializes it (docs/10). */
+export interface HourlyPoint {
+  hour: string;
+  packages: number;
+  avg_conf?: number;
+  occluded_events?: number;
+}
+
+/** GET /api/v1/zones/{z}/hourly response body. */
+export interface HourlyResponse {
+  zone_id: string;
+  date: string;
+  hours: HourlyPoint[];
+}
+
+/** Flatten one zone's server hours into universal rows ("14" stays "14"). */
+export function fromHourlyPoints(zoneId: string, pts: HourlyPoint[]): HourlyRow[] {
+  return pts.map((p) => ({
+    zone_id: zoneId,
+    hour: p.hour.slice(11, 13),
+    delta: p.packages,
+  }));
+}
+
 export interface SeriesPoint {
   hour: string;
   [zone: string]: number | string;

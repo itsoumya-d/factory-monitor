@@ -99,6 +99,7 @@ pub fn build_router(state: Shared) -> Router {
         .route("/api/v1/rl/history", get(get_rl_history))
         .route("/api/v1/snapshots/query", post(query_snapshots))
         .route("/api/v1/labeling/queue", get(get_label_queue))
+        .route("/api/v1/labeling/{frame_id}/approve", post(approve_label))
         .route("/ws/live", get(ws_live))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
@@ -573,6 +574,37 @@ async fn get_label_queue(State(state): State<Shared>) -> Result<Json<Value>, Api
         })
         .collect();
     Ok(Json(json!({"queue": queue})))
+}
+
+#[derive(Deserialize)]
+struct LabelApprove {
+    operator_id: String,
+    #[serde(default)]
+    coco_annotations: Option<Value>,
+}
+
+async fn approve_label(
+    State(state): State<Shared>,
+    Path(frame_id): Path<Uuid>,
+    Json(sub): Json<LabelApprove>,
+) -> Result<Json<Value>, ApiError> {
+    let operator = OperatorId::try_new(&sub.operator_id)
+        .map_err(|e| ApiError::BadRequest(format!("{e:?}")))?;
+    state
+        .repos
+        .review_snapshot(frame_id, operator.clone(), sub.coco_annotations)
+        .await?;
+    // A reviewed frame leaves the auto-label queue on its next promotion
+    // cycle; LabeledOk is the terminal reviewed state (docs/09 §3).
+    state
+        .repos
+        .set_snapshot_promotion(frame_id, SnapshotPromotion::LabeledOk)
+        .await?;
+    Ok(Json(json!({
+        "frame_id": frame_id,
+        "approved": true,
+        "reviewed_by": sub.operator_id,
+    })))
 }
 
 // ------------------- websocket -------------------

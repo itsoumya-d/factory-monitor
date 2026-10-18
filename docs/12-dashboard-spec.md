@@ -28,8 +28,8 @@
 | ▸ `ZoneCard` | zone_id, live count, conf, flags | flag chips: **Occluded**, **Diverged**, **ClockDegraded** |
 | ▸ `MiniVideoTile` | camera_id, overlay stream | `<video>` (HLS via `/api/v1/streams/{id}/index.m3u8`, withheld if camera fails → poster) + `<canvas>` overlay of boxes/lines |
 | ▸ `ConfBadge` | level 0-1 | green ≥0.9 / amber ≥0.75 / red else |
-| `LiveThroughputChart` | hourly rollup | Recharts AreaChart, 24h, goal line |
-| `BottleneckHeatmap` | floorplan.png + motion data | deck.gl overlay, color scale "calm→storm", tooltip = hourly min/utc |
+| `LiveThroughputChart` | hourly rollup | Recharts AreaChart, 24h, goal line, one series per zone |
+| `BottleneckHeatmap` | zone × hour grid (`GET /api/v1/zones/{z}/hourly`) | pure DOM grid (deck.gl overlay is reserved for floorplan.png when a venue supplies one), same "calm→storm" scale, per-cell tooltip |
 | `CounterTicker` | WS CountEvent | optimistic local +1, flashes on divergence |
 | `CorrectionForm` | zones, windows | multi-step: pick zone → pick window → slider actual vs predicted → tags → notes → Submit. **Bad-delta guard:** if \|actual - predicted\| > 25% ask "Confirm big swing?" + requires wishRetrain checkbox |
 | `SuspectWindowViewer` | window_id | timeline scrubber of 12 sampled frames + pre/post boxes + VLM root cause + operator's re-count entry |
