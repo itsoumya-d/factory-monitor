@@ -36,7 +36,7 @@
 | `CounterTicker` | WS CountEvent | optimistic local +1, flashes on divergence |
 | `CorrectionForm` | zones, windows | multi-step: pick zone → pick window → slider actual vs predicted → tags → notes → Submit. **Bad-delta guard:** if \|actual - predicted\| > 25% ask "Confirm big swing?" + requires wishRetrain checkbox |
 | `SuspectWindowViewer` | window_id | timeline scrubber of 12 sampled frames + pre/post boxes + VLM root cause + operator's re-count entry |
-| `LabelApprover` | frame_id | shows auto-annotations; drag-to-fix boxes; "Approve/Reject/Teach" → POST /labeling |
+| `LabelApprover` | frame_id, operator | `inspect` → frame bytes (`GET /api/v1/snapshots/image/{frame_id}`) + drag-to-fix boxes (SVG, normalized coords, preloaded from the queue row's `coco_annotations`) + approve → `POST /api/v1/labeling/{frame_id}/approve` body `{operator_id, coco_annotations}` (TS mirror of `vlm_orchestrator::package_coco`: 1-indexed ids, pixel bbox, fail-closed taxonomy). Reject/Teach verbs need backend routes first |
 | `RlPanel` | current + history | sliders (disabled unless unlocked), runway visualization of clamps, "Pause policy" switch, bottom "Revert to last-safe" button |
 | `LifecycleStrip` | state | Shows Standby/Calibrating/Counting/Correcting/Degraded with pulse animation + "what's blocking" checklist during Major durations |
 

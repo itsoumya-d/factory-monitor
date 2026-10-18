@@ -6,7 +6,7 @@ On top of that product, Shado ships the **Universal Multimodal Spatial Intellige
 
 [![CI](https://github.com/itsoumya-d/factory-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/itsoumya-d/factory-monitor/actions/workflows/ci.yml)
 
-**Status: implemented and green.** Phase 1–6 (ingestion → inference → RL → VLM → API → DB) plus Platform deliverables D1–D5 are merged to `main`; the workspace runs **431 tests** (+39 web vitest +4 Playwright E2E on the dashboard), `cargo clippy -D warnings` clean, `cargo deny` clean (bans/sources/licenses/advisories), and CI passes **7/7 jobs** (lint, unit, integration w/ TimescaleDB, simulation, security, wasm, **web** incl. E2E).
+**Status: implemented and green.** Phase 1–6 (ingestion → inference → RL → VLM → API → DB) plus Platform deliverables D1–D5 are merged to `main`; the workspace runs **432 tests** (+45 web vitest +5 Playwright E2E incl. the drag-to-fix label viewer), `cargo clippy -D warnings` clean, `cargo deny` clean (bans/sources/licenses/advisories), and CI passes **7/7 jobs** (lint, unit, integration w/ TimescaleDB, simulation, security, wasm, **web** incl. E2E).
 
 ---
 
