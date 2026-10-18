@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import BottleneckHeatmap from "@/components/BottleneckHeatmap";
 import ReviewPage from "@/app/review/page";
 import type { LabelRow } from "@/components/LabelApprover";
-import { fromHourlyPoints, goalPerHour, hourlySeries, zoneList, zoneKey } from "@/lib/series";
+import { fromHourlyPoints, goalPerHour, hourlySeries, lowConfidenceWindows, zoneList, zoneKey } from "@/lib/series";
 import type { HourlyPoint } from "@/lib/series";
 
 vi.mock("@/lib/live", () => ({
@@ -36,8 +36,11 @@ describe("series contract with the Rust hourly rollup", () => {
   it("flattens server hours into zone rows", () => {
     const rows = fromHourlyPoints("line_1", SERVER_HOURS);
     expect(rows).toEqual([
-      { zone_id: "line_1", hour: "14", delta: 14 },
-      { zone_id: "line_1", hour: "15", delta: 3 },
+      { zone_id: "line_1", hour: "14", delta: 14, avg_conf: 0.93 },
+      { zone_id: "line_1", hour: "15", delta: 3, avg_conf: 0.4 },
+    ]);
+    expect(lowConfidenceWindows(rows)).toEqual([
+      { zone_id: "line_1", hour: "15", avg_conf: 0.4 },
     ]);
     expect(zoneList(rows)).toEqual(["line_1"]);
     const series = hourlySeries(rows);

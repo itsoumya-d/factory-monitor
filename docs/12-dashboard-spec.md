@@ -35,9 +35,9 @@
 | `BottleneckHeatmap` | zone × hour grid (`GET /api/v1/zones/{z}/hourly`) | pure DOM grid (deck.gl overlay is reserved for floorplan.png when a venue supplies one), same "calm→storm" scale, per-cell tooltip |
 | `CounterTicker` | WS CountEvent | optimistic local +1, flashes on divergence |
 | `CorrectionForm` | zones, windows | multi-step: pick zone → pick window → slider actual vs predicted → tags → notes → Submit. **Bad-delta guard:** if \|actual - predicted\| > 25% ask "Confirm big swing?" + requires wishRetrain checkbox |
-| `SuspectWindowViewer` | window_id | timeline scrubber of 12 sampled frames + pre/post boxes + VLM root cause + operator's re-count entry |
+| `SuspectWindowViewer` | window_id | **grounded:** timeline strip of the sampled corner frames from `GET /api/v1/snapshots/window?zone_id=&ts=&span=` (±1800 s, nearest-first focal pick, chronological re-order, zone-filtered, bytes stay on `/snapshots/image/{id}`); scrubs into a big preview with uncertainty-flag chips; empty-window edge state; opens from the review queue (window ±30m) and from the report `windows to review` timeline. VLM root cause + re-count entry wait on the VLM root-cause surface landing in docs/10 upload |
 | `LabelApprover` | frame_id, operator | `inspect` → frame bytes (`GET /api/v1/snapshots/image/{frame_id}`) + drag-to-fix boxes (SVG, normalized coords, preloaded from the queue row's `coco_annotations`) + approve → `POST /api/v1/labeling/{frame_id}/approve` body `{operator_id, coco_annotations}` (TS mirror of `vlm_orchestrator::package_coco`: 1-indexed ids, pixel bbox, fail-closed taxonomy). The "teach" verb is approve-with-annotations by wire contract. Reject → `POST /api/v1/labeling/{frame_id}/reject` body `{operator_id, reason}` (reason mandatory, 400 without) → `SnapshotPromotion::Rejected` + reviewer recorded; the frame leaves the queue and never becomes training data |
-| `RlPanel` | current + history | sliders (disabled unless unlocked), runway visualization of clamps, "Pause policy" switch, bottom "Revert to last-safe" button |
+| `RlPanel` | current + history | **grounded:** sliders stay disabled (the bandit is the only automated actor); runway visualization from the last WS transition; `Pause policy` ships as preset durations (30 min / 2 h / 8 h) posting `POST /api/v1/rl/override` `{until, note}`; bottom "Revert to last-safe" posts a 1 s override whose note documents the clamp re-arm (docs/10 has no separate revert route — the override route with sane payload is its wire contract); rl_audit history table renders `GET /api/v1/rl/history?date=` with reason/clamp/reward columns |
 | `LifecycleStrip` | state | Shows Standby/Calibrating/Counting/Correcting/Degraded with pulse animation + "what's blocking" checklist during Major durations |
 
 ## 4. Live WS contract (consumes docs/10 §3 server payloads)
@@ -52,6 +52,10 @@ Reconnect strategy: exponential backoff 1s→30s, on reconnect fetch REST snapsh
   3. bottleneck heatmap,
   4. "windows to review" timeline of `LOW_CONFIDENCE` spans (click → open Viewer),
   5. buttons: `Submit corrections` → POST correction, `Export PDF/CSV`, `Copy webhook payload`.
+     **grounded:** CSV export builds `zone_id,hour,packages,avg_conf,date` client-side and
+     downloads `shado-report-<date>.csv`; PDF = browser print path; webhook payload copies
+     the `{date, zones, rows}` JSON snapshot to the clipboard (feedback chip also covers
+     permission denial). `Submit corrections` remains the audit-desk form (§2 /audit).
 - Shows per-window **RL reward effects** transparently: "This correction will tighten τ_conf in PM shift tomorrow from 0.44 → 0.51".
 
 ## 6. Accessibility & i18n & theming

@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import LabelApprover, { type LabelRow } from "@/components/LabelApprover";
+import SuspectWindowViewer from "@/components/SuspectWindowViewer";
 import { apiFetch, useLive } from "@/lib/live";
 
 export default function ReviewPage() {
   const [operator, setOperator] = useState("");
+  const [windowCtx, setWindowCtx] = useState<{ zone: string; ts: string } | null>(null);
   const queryClient = useQueryClient();
   const labelCount = useLive((s) => s.labels.length);
 
@@ -59,10 +61,27 @@ export default function ReviewPage() {
           <li className="text-sm text-zinc-500">queue clear — nothing flagged</li>
         ) : (
           rows.map((row) => (
-            <LabelApprover key={row.frame_id} row={row} operator={operator} onDone={remove} />
+            <li key={row.frame_id} className="space-y-1">
+              <LabelApprover row={row} operator={operator} onDone={remove} />
+              <button
+                type="button"
+                onClick={() => setWindowCtx({ zone: row.zone_id, ts: row.ts })}
+                className="rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-300"
+                data-testid={`window-${row.frame_id}`}
+              >
+                window ±30m
+              </button>
+            </li>
           ))
         )}
       </ul>
+      {windowCtx && (
+        <SuspectWindowViewer
+          zoneId={windowCtx.zone}
+          ts={windowCtx.ts}
+          onClose={() => setWindowCtx(null)}
+        />
+      )}
     </div>
   );
 }

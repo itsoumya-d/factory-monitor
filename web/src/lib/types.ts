@@ -111,3 +111,34 @@ export interface CorrectionResult {
   reward_computed: number;
   retrain: boolean;
 }
+
+/** GET /api/v1/snapshots/window row (docs/12 §3 SuspectWindowViewer data). */
+export interface SuspectFrame {
+  frame_id: string;
+  ts: string;
+  camera_id: string;
+  uncertainty_mask: number;
+  divergence: number | null;
+  promotion: string;
+}
+
+export interface SuspectWindow {
+  zone_id: string;
+  ts: string;
+  focal_frame_id: string | null;
+  frames: SuspectFrame[];
+}
+
+/** GET /api/v1/rl/history row (serde snake_case mirror of rl_audit). */
+export interface RlHistoryRow {
+  transition_id: string;
+  ts: string;
+  zone_id: string | null;
+  before: { conf_threshold: number; iou_threshold: number; vision_weight: number; track_buffer_frames: number };
+  after: { conf_threshold: number; iou_threshold: number; vision_weight: number; track_buffer_frames: number };
+  reward: number | null;
+  was_clamped: boolean;
+  rejected: boolean;
+  /** rl_audit.reason vocab: eod_correction | intraday_shape | guardrail_reject | manual_override | restore */
+  reason: string;
+}

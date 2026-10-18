@@ -102,7 +102,7 @@ export default function LabelApprover({
 
   const flags = parseUncertainty(row.uncertainty_mask);
   return (
-    <li className="rounded border border-zinc-800 bg-zinc-900 p-3" data-testid={`label-${row.frame_id}`}>
+    <div className="rounded border border-zinc-800 bg-zinc-900 p-3" data-testid={`label-${row.frame_id}`}>
       <p className="font-mono text-xs text-zinc-300">
         {row.zone_id} · {row.camera_id} · {row.ts.slice(11, 19)} ·{" "}
         <span className="text-amber-400">{row.promotion.toLowerCase()}</span>
@@ -164,6 +164,6 @@ export default function LabelApprover({
           reject
         </button>
       </div>
-    </li>
+    </div>
   );
 }
