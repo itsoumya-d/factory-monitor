@@ -1,0 +1,5 @@
+{
+  "nav": { "live": "Live ops", "audit": "Corrections", "reports": "Reports", "knobs": "RL knobs" },
+  "banner": { "stale": "Stale feed — last message over 10s old." },
+  "zones": { "empty": "Waiting for live crossings…" }
+}
