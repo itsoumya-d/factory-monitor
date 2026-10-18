@@ -2,29 +2,29 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/live";
+import LiveThroughputChart from "@/components/LiveThroughputChart";
+import type { HourlyRow } from "@/lib/series";
 
 /** Hourly rollup from the Rust counting API (GET /api/v1/zones/{z}/hourly). */
 export default function ReportFor({ date }: { date: string }) {
   const valid = /^\d{4}-\d{2}-\d{2}$/.test(date);
   const { data } = useQuery({
     queryKey: ["hourly", date],
-    queryFn: () => apiFetch<{ rows: { hour: string; zone_id: string; delta: number }[] }>(
-      `/api/v1/zones/-/hourly?date=${date}`,
-    ),
+    queryFn: () => apiFetch<{ rows: HourlyRow[] }>(`/api/v1/zones/-/hourly?date=${date}`),
     enabled: valid,
   });
   if (!valid) return <p className="text-sm text-red-400">bad date format</p>;
 
   const rows = data?.rows ?? [];
-  const zones = [...new Set(rows.map((r) => r.zone_id))];
   return (
     <div className="space-y-3" data-testid="report-blocks">
+      <LiveThroughputChart rows={rows} />
       <section className="rounded border border-zinc-800 bg-zinc-900 p-4">
-        <h2 className="text-sm font-semibold text-zinc-200">Predicted vs actual</h2>
+        <h2 className="text-sm font-semibold text-zinc-200">Hourly rollup</h2>
         <p className="text-sm text-zinc-400">
-          {zones.length === 0
+          {rows.length === 0
             ? "no hourly data for this date (server empty or route offline)"
-            : `${zones.length} zone(s) tallied`}
+            : `${rows.length} row(s) tallied`}
         </p>
         <table className="mt-2 w-full font-mono text-sm text-zinc-300">
           <tbody data-testid="hourly-table">
@@ -41,3 +41,4 @@ export default function ReportFor({ date }: { date: string }) {
     </div>
   );
 }
+
