@@ -3,6 +3,7 @@
 import type { ZoneLive } from "@/lib/live";
 import ConfBadge from "./ConfBadge";
 import { parseUncertainty } from "@/lib/formats";
+import MiniVideoTile from "./MiniVideoTile";
 
 const FLAG_CHIP: Record<string, string> = {
   OCCLUDED_ESTIMATE: "bg-sky-700 text-sky-100",
@@ -11,7 +12,15 @@ const FLAG_CHIP: Record<string, string> = {
   LOW_TRACK_STRENGTH: "bg-zinc-600 text-zinc-100",
 };
 
-export default function ZoneCard({ live }: { live: ZoneLive }) {
+export default function ZoneCard({
+  live,
+  cameraId,
+}: {
+  live: ZoneLive;
+  /** Camera wiring for this zone comes from the venue config (docs/13);
+   *  the dashboard passes it only when the venue template provides one. */
+  cameraId?: string;
+}) {
   const e = live.lastEvent;
   const flags = [
     ...new Set([...live.flagNames, ...parseUncertainty(e?.uncertainty ?? "")]),
@@ -27,6 +36,7 @@ export default function ZoneCard({ live }: { live: ZoneLive }) {
         <h3 className="text-sm font-semibold text-zinc-200">{live.zoneId}</h3>
         {e && <ConfBadge value={e.confidence} />}
       </header>
+      {cameraId && <MiniVideoTile cameraId={cameraId} />}
       <p data-testid="zone-count" className="text-3xl font-semibold text-zinc-50 tabular-nums">
         {live.count}
       </p>

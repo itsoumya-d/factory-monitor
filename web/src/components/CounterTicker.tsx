@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLive } from "@/lib/live";
 
 /** Ticker of live cross events (CounterTicker docs/12 §3). */
 export default function CounterTicker() {
-  const counts = useLive((s) => [...s.counts.values()]);
+  // Select the Map ref (stable until the next store write); derive with
+  // useMemo — in-selector array spreads re-render-loop in React 19.
+  const countsMap = useLive((s) => s.counts);
+  const counts = useMemo(() => [...countsMap.values()], [countsMap]);
   const [flashes, setFlashes] = useState<string[]>([]);
 
   // Down-convert flashes (<600ms per photosensitivity rule).

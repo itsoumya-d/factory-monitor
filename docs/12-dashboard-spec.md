@@ -14,7 +14,10 @@
 /(app)
   /dashboard                 Live ops — per-zone counters, mini video tiles, fusion bars, health strip
   /reports/YYYY-MM-DD        The Visual Business Report (EOD)
-  /audit                     Corrections: list + correct form + suspect windows viewer
+  /audit                     Corrections desk: submit form + commit queue
+                             (GET /audit/pending returns AuditCorrectionRow —
+                             submitted corrections awaiting commit; commit
+                             posts {confirm} and 409s deltas >100 without it)
   /review                    Label queue: low-res frames + boxes → approve/fix → COCO
   /settings/rois             ROI editor (drag counting lines on floor plan/camera stills)
   /settings/policy           RL knobs: pause/unpause manual override + bounds visualization
@@ -63,3 +66,31 @@ Reconnect strategy: exponential backoff 1s→30s, on reconnect fetch REST snapsh
 - Component tests: Playwright for correction form + ROI editor E2E; Vitest/RTL for units.
 - **WS mock harness** replays synthetic event streams from fixture JSON files (backend fixture day).
 - Visual regression: Playwright screenshot diffs on dark/light, CRITIC on the audit tab.
+
+## 9. Grounded implementation notes (docs/10 backend parity)
+
+- `/audit/pending` returns `AuditCorrectionRow` rows (`correction_id`,
+  `feedback{zone_id, reported_count, actual_count, ts_from, ts_to,
+  failure_tags, notes, operator_id, wants_retrain}`, `outcome`,
+  `reward_computed`, `created_at`) — not "predicted windows". The desk is
+  submit → pending → **commit**; the reward lands at commit.
+- The submit form posts the exact `CorrectionSubmit` body; the bad-delta
+  guard (>25%) is frontend pedagogy, the hard gate is the commit 409.
+- The heatmap is a pure-DOM zone × hour grid (deck.gl is reserved for
+  venues that supply `floorplan.png`).
+- `MiniVideoTile` sources its feed from `NEXT_PUBLIC_SHADO_HLS_URL`
+  (`{camera}` placeholder, edge-node live HLS); `ZoneCard` renders one only
+  when the venue config passes the camera binding. No feed key → explicit
+  "withheld" note — never a silently-cycled still.
+- Playwright E2E (`web/e2e`) boots the Next dev server and intercepts REST
+  with the real backend JSON shapes: audit commit flow + 409 semantics,
+  per-zone hourly → chart/heatmap/table, dashboard shell + dead-WS honest
+  `reconnecting` chip. Screenshots are artifacts (only-on-failure + paths),
+  not pixel assertions — font rendering differs across runner OSes.
+- Zustand store slices must be selected as the Map ref and derived with
+  `useMemo`; in-selector array spreads (`[...s.counts.values()]`) unlock a
+  React 19 useSyncExternalStore render loop that only fires in a real
+  browser (found by the dashboard E2E).
+- E2E section 9 covers the harness reality: dev-server + REST interception
+  (no backend needed), failure screenshots as artifacts, and the render-loop
+  selector rule.

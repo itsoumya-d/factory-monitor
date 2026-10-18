@@ -72,15 +72,26 @@ export interface RlState {
   rejected_24h: number;
 }
 
-/** GET /api/v1/audit/pending → {"pending": rows[]} */
-export interface PendingWindow {
-  window_id: string;
+/** GET /api/v1/audit/pending → {"pending": AuditCorrectionRow[]} (docs/10). */
+export interface CorrectionFeedback {
   zone_id: string;
+  reported_count: number;
+  actual_count: number;
   ts_from: string;
   ts_to: string;
-  predicted_count: number;
-  confidence: number;
-  reason: string;
+  failure_tags: number;
+  notes: string | null;
+  operator_id: string;
+  wants_retrain: boolean;
+}
+
+export interface PendingCorrectionRow {
+  correction_id: string;
+  feedback: CorrectionFeedback;
+  outcome: "submitted" | "committed" | "superseded";
+  reward_computed: number | null;
+  root_cause_report: unknown;
+  created_at: string;
 }
 
 export interface CorrectionSubmitBody {
