@@ -272,4 +272,46 @@ mod tests {
         assert!((x[1] - v[0]).abs() < 1e-6);
         assert!((x[12] - v[11]).abs() < 1e-6, "lifecycle one-hot last");
     }
+
+    #[test]
+    fn bucket_counts_match_the_bucket_tables() {
+        assert_eq!(ActionDim::Conf.bucket_count(), CONF_BUCKETS.len());
+        assert_eq!(ActionDim::Iou.bucket_count(), IOU_BUCKETS.len());
+        assert_eq!(
+            ActionDim::VisionWeight.bucket_count(),
+            VISION_WEIGHT_BUCKETS.len()
+        );
+        assert_eq!(
+            ActionDim::TrackBuffer.bucket_count(),
+            TRACK_BUFFER_BUCKETS.len()
+        );
+        assert_eq!(ActionDim::FpWeight.bucket_count(), FP_WEIGHT_BUCKETS.len());
+    }
+
+    #[test]
+    fn bucket_value_maps_the_exact_table_entry() {
+        // Float dims: value variant carries the table constant verbatim.
+        for (b, v) in CONF_BUCKETS.iter().enumerate() {
+            assert_eq!(ActionDim::Conf.bucket_value(b), BucketValue::Float(*v));
+        }
+        for (b, v) in IOU_BUCKETS.iter().enumerate() {
+            assert_eq!(ActionDim::Iou.bucket_value(b), BucketValue::Float(*v));
+        }
+        for (b, v) in VISION_WEIGHT_BUCKETS.iter().enumerate() {
+            assert_eq!(
+                ActionDim::VisionWeight.bucket_value(b),
+                BucketValue::Float(*v)
+            );
+        }
+        for (b, v) in FP_WEIGHT_BUCKETS.iter().enumerate() {
+            assert_eq!(ActionDim::FpWeight.bucket_value(b), BucketValue::Float(*v));
+        }
+        // The only frame-valued dim: TrackBuffer returns Frames, not Float.
+        for (b, v) in TRACK_BUFFER_BUCKETS.iter().enumerate() {
+            assert_eq!(
+                ActionDim::TrackBuffer.bucket_value(b),
+                BucketValue::Frames(*v)
+            );
+        }
+    }
 }

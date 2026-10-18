@@ -713,4 +713,43 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn reconfigure_swaps_track_params_immediately() {
+        let mut tr = ByteTracker::new(TrackParams::docs_default());
+        let _ = tr.update(&moving_dets(0)).unwrap();
+        let _ = tr.update(&moving_dets(1)).unwrap();
+        // RL-action contract: buffer_frames shrinks → a zombie is culled
+        // two frames later (not at the docs default).
+        tr.reconfigure(TrackParams {
+            iou_first: 0.10,
+            iou_second: 0.05,
+            iou_rescue: 0.02,
+            confirm_frames: 2,
+            buffer_frames: 3,
+            score_alpha: 0.6,
+        });
+        assert_eq!(tr.frame_count(), 2);
+        // Track continues normally after a swap (state carried, not reset).
+        let out = tr.update(&moving_dets(2)).unwrap();
+        assert_eq!(out.len(), 1, "live track survives reconfigure");
+        assert!(matches!(out[0].state, TrackState::Confirmed));
+        assert_eq!(tr.confirmed_ids().len(), 1);
+    }
+
+    #[test]
+    fn zombie_cull_honours_the_rl_buffer_window() {
+        // docs/07 §3: the RL-owned buffer_frames is the zombie grace.
+        let mut tr = ByteTracker::new(TrackParams::docs_default());
+        let _ = tr.update(&moving_dets(0)).unwrap();
+        let _ = tr.update(&moving_dets(1)).unwrap();
+        // 1 frame with nothing, then the track returns — still alive.
+        let _ = tr.update(&[]).unwrap();
+        let out = tr.update(&moving_dets(4)).unwrap();
+        assert_eq!(
+            out.len(),
+            1,
+            "one missed frame stays inside the grace window"
+        );
+    }
 }

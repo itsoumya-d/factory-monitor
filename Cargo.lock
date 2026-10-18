@@ -6882,6 +6882,7 @@ dependencies = [
  "monitoring-contract",
  "serde",
  "thiserror 2.0.21",
+ "universal-bridge-rs",
  "wasm-bindgen",
 ]
 
