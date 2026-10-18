@@ -13,7 +13,7 @@ export const UNCERTAINTY_NAMES: UncertaintyFlag[] = [
  * bitflags as a Display string ("OCCLUDED_ESTIMATE | MODALITY_DIVERGENCE");
  * tolerate also omissions and masked integers.
  */
-export function parseUncertainty(raw: string): UncertaintyFlag[] {
+export function parseUncertainty(raw: string | number): UncertaintyFlag[] {
   let names: string[] = [];
   if (typeof raw === "number") {
     names = UNCERTAINTY_NAMES.filter((_, bit) => (1 << bit) & raw);

@@ -6,7 +6,7 @@ On top of that product, Shado ships the **Universal Multimodal Spatial Intellige
 
 [![CI](https://github.com/itsoumya-d/factory-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/itsoumya-d/factory-monitor/actions/workflows/ci.yml)
 
-**Status: implemented and green.** Phase 1–6 (ingestion → inference → RL → VLM → API → DB) plus Platform deliverables D1–D5 are merged to `main`; the workspace runs **430 tests**, `cargo clippy -D warnings` clean, `cargo deny` clean (bans/sources/licenses/advisories), and CI passes **6/6 jobs** (lint, unit, integration w/ TimescaleDB, simulation, security, **wasm**).
+**Status: implemented and green.** Phase 1–6 (ingestion → inference → RL → VLM → API → DB) plus Platform deliverables D1–D5 are merged to `main`; the workspace runs **431 tests** (+32 web vitest), `cargo clippy -D warnings` clean, `cargo deny` clean (bans/sources/licenses/advisories), and CI passes **7/7 jobs** (lint, unit, integration w/ TimescaleDB, simulation, security, wasm, **web**).
 
 ---
 
@@ -167,7 +167,7 @@ Same sensing stack, any vertical. `monitoring-contract` holds the typed rule sch
 ## 6. Quickstart
 
 ```bash
-cargo test --workspace          # 430 tests, fully hermetic (no hardware, no docker)
+cargo test --workspace          # 431 tests, fully hermetic (no hardware, no docker)
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all -- --check
 cargo deny check                # licenses + advisories + bans + sources

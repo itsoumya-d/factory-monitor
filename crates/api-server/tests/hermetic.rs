@@ -455,6 +455,79 @@ async fn snapshots_query_and_label_queue() {
 }
 
 #[tokio::test]
+async fn label_queue_approve_marks_reviewed() {
+    let h = harness();
+    let flagged = SnapshotRow {
+        frame_id: Uuid::now_v7(),
+        zone_id: ZoneId::try_new("line_1").expect("z"),
+        ts: ts(9),
+        camera_id: CameraId::try_new("camA").expect("c"),
+        jpeg_lowres: None,
+        uncertainty_mask: 1,
+        divergence: Some(0.3),
+        state: serde_json::json!({}),
+        promotion: SnapshotPromotion::Amber,
+        vlm_root_cause: None,
+        coco_annotations: None,
+        reviewed_by: None,
+        reviewed_at: None,
+    };
+    h.repos.put_snapshot(flagged.clone()).await.expect("snap");
+    let frame_id = flagged.frame_id.to_string();
+
+    let (code, json) = call_json(&h.router, get("/api/v1/labeling/queue"), body("")).await;
+    assert_eq!(code, StatusCode::OK, "{json}");
+    assert_eq!(json["queue"].as_array().expect("queue").len(), 1);
+
+    let (code, json) = call_json(
+        &h.router,
+        post(&format!("/api/v1/labeling/{frame_id}/approve")),
+        body("{\"operator_id\":\"op_1\",\"coco_annotations\":{\"images\":[1]}}"),
+    )
+    .await;
+    assert_eq!(code, StatusCode::OK, "{json}");
+    assert_eq!(json["approved"], true, "{json}");
+    assert_eq!(json["reviewed_by"], "op_1");
+
+    // The reviewed frame leaves the queue (promotion left the amber gate).
+    let (code, json) = call_json(&h.router, get("/api/v1/labeling/queue"), body("")).await;
+    assert_eq!(code, StatusCode::OK, "{json}");
+    assert_eq!(json["queue"].as_array().expect("queue").len(), 0);
+
+    // Approval is durable: the row now carries reviewer + annotations.
+    let row = h
+        .repos
+        .get_snapshot(flagged.frame_id)
+        .await
+        .expect("get")
+        .expect("row exists");
+    assert_eq!(row.promotion, SnapshotPromotion::LabeledOk);
+    let reviewer = row.reviewed_by.expect("reviewer");
+    assert_eq!(reviewer.as_str(), "op_1");
+    assert!(row.coco_annotations.is_some());
+
+    // Unknown frame is a 404, not a silent 200.
+    let miss = h
+        .router
+        .clone()
+        .oneshot(
+            post(&format!("/api/v1/labeling/{}/approve", Uuid::now_v7()))
+                .map(|_| axum::body::Body::from(r#"{"operator_id":"op_1"}"#)),
+        )
+        .await
+        .expect("oneshot miss");
+    assert_eq!(miss.status(), StatusCode::NOT_FOUND);
+
+    // Missing operator is a 400 (axum's text rejection, not sanitized JSON).
+    let (code, _) = call_text(
+        &h.router,
+        post(&format!("/api/v1/labeling/{frame_id}/approve")),
+    )
+    .await;
+    assert_eq!(code, StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
 async fn ws_topics_reject_unknowns() {
     let h = harness();
     // Without an upgrade handshake the extractor rejects with 4xx first;
