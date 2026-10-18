@@ -104,6 +104,7 @@ pub fn build_router(state: Shared) -> Router {
             get(get_snapshot_image),
         )
         .route("/api/v1/labeling/{frame_id}/approve", post(approve_label))
+        .route("/api/v1/labeling/{frame_id}/reject", post(reject_label))
         .route("/ws/live", get(ws_live))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
@@ -608,6 +609,43 @@ async fn approve_label(
     Ok(Json(json!({
         "frame_id": frame_id,
         "approved": true,
+        "reviewed_by": sub.operator_id,
+    })))
+}
+
+#[derive(Deserialize)]
+struct LabelReject {
+    operator_id: String,
+    #[serde(default)]
+    reason: Option<String>,
+}
+
+/// "Reject" verb (docs/12 §3 LabelApprover): the frame never becomes
+/// training data — promotion moves past the amber gate to Rejected and
+/// the operator counts as its reviewer.
+async fn reject_label(
+    State(state): State<Shared>,
+    Path(frame_id): Path<Uuid>,
+    Json(sub): Json<LabelReject>,
+) -> Result<Json<Value>, ApiError> {
+    if sub.reason.is_none() {
+        return Err(ApiError::BadRequest(
+            "a rejection needs a reason for the audit trail".to_string(),
+        ));
+    }
+    let operator = OperatorId::try_new(&sub.operator_id)
+        .map_err(|e| ApiError::BadRequest(format!("{e:?}")))?;
+    state
+        .repos
+        .review_snapshot(frame_id, operator, None)
+        .await?;
+    state
+        .repos
+        .set_snapshot_promotion(frame_id, SnapshotPromotion::Rejected)
+        .await?;
+    Ok(Json(json!({
+        "frame_id": frame_id,
+        "rejected": true,
         "reviewed_by": sub.operator_id,
     })))
 }

@@ -584,6 +584,73 @@ async fn label_queue_approve_marks_reviewed() {
 }
 
 #[tokio::test]
+async fn label_queue_reject_never_yields_training_data() {
+    let h = harness();
+    let flagged = SnapshotRow {
+        frame_id: Uuid::now_v7(),
+        zone_id: ZoneId::try_new("line_2").expect("z"),
+        ts: ts(11),
+        camera_id: CameraId::try_new("camB").expect("c"),
+        jpeg_lowres: None,
+        uncertainty_mask: 4,
+        divergence: Some(0.6),
+        state: serde_json::json!({}),
+        promotion: SnapshotPromotion::Amber,
+        vlm_root_cause: None,
+        coco_annotations: None,
+        reviewed_by: None,
+        reviewed_at: None,
+    };
+    h.repos.put_snapshot(flagged.clone()).await.expect("snap");
+    let frame_id = flagged.frame_id.to_string();
+
+    // Reason is mandatory — rejects feed the audit trail.
+    let (code, _) = call_json(
+        &h.router,
+        post(&format!("/api/v1/labeling/{frame_id}/reject")),
+        body("{\"operator_id\":\"op_2\"}"),
+    )
+    .await;
+    assert_eq!(code, StatusCode::BAD_REQUEST);
+
+    let (code, json) = call_json(
+        &h.router,
+        post(&format!("/api/v1/labeling/{frame_id}/reject")),
+        body("{\"operator_id\":\"op_2\",\"reason\":\"blurred frame\"}"),
+    )
+    .await;
+    assert_eq!(code, StatusCode::OK, "{json}");
+    assert_eq!(json["rejected"], true, "{json}");
+    assert_eq!(json["reviewed_by"], "op_2");
+
+    // Out of the queue and past the amber gate.
+    let (code, json) = call_json(&h.router, get("/api/v1/labeling/queue"), body("")).await;
+    assert_eq!(code, StatusCode::OK);
+    assert_eq!(json["queue"].as_array().expect("queue").len(), 0);
+
+    let row = h
+        .repos
+        .get_snapshot(flagged.frame_id)
+        .await
+        .expect("get")
+        .expect("row exists");
+    assert_eq!(row.promotion, SnapshotPromotion::Rejected);
+    let reviewer = row.reviewed_by.expect("reviewer");
+    assert_eq!(reviewer.as_str(), "op_2");
+    // Reject never fabricates annotations.
+    assert!(row.coco_annotations.is_none());
+
+    // Unknown frame is a 404 (body must clear the Json extractor first).
+    let (code, _) = call_json(
+        &h.router,
+        post(&format!("/api/v1/labeling/{}/reject", Uuid::now_v7())),
+        body("{\"operator_id\":\"op_2\",\"reason\":\"x\"}"),
+    )
+    .await;
+    assert_eq!(code, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
 async fn ws_topics_reject_unknowns() {
     let h = harness();
     // Without an upgrade handshake the extractor rejects with 4xx first;

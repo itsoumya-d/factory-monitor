@@ -93,3 +93,42 @@ test("review viewer: frame bytes, drag box, approve posts the COCO body", async 
 
   await page.screenshot({ path: "e2e/__screenshots__/review.png", fullPage: true });
 });
+
+test("review viewer: reject needs operator, posts the reason and dequeues", async ({ page }) => {
+  test.setTimeout(60_000);
+  const rejects: unknown[] = [];
+  const queue = [{ ...ROW }];
+  void page.route(/^.*\/api\/v1\/labeling\/queue.*$/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ queue: [...queue] }),
+    }),
+  );
+  void page.route(new RegExp(`/api/v1/labeling/${FRAME_ID}/reject$`), async (route) => {
+    rejects.push(route.request().postDataJSON());
+    queue.length = 0;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ rejected: true }),
+    });
+  });
+
+  await page.goto("/review");
+  const row = page.getByTestId(`label-${FRAME_ID}`);
+  await expect(row).toContainText("divergence 0.42");
+
+  // Reject is operator-gated like approve.
+  const btn = page.getByTestId(`reject-${FRAME_ID}`);
+  await expect(btn).toBeDisabled();
+  await page.getByTestId("operator-input").fill("op_2");
+  await btn.click();
+
+  await expect(row).toHaveCount(0);
+  await expect(page.getByTestId("review-list")).toContainText("queue clear");
+
+  const body = rejects[0] as { operator_id: string; reason: string };
+  expect(body.operator_id).toBe("op_2");
+  expect(body.reason.length).toBeGreaterThan(0);
+});

@@ -69,18 +69,18 @@ describe("BottleneckHeatmap", () => {
   });
 });
 
-describe("Review page", () => {
-  const ROW: LabelRow = {
-    frame_id: "0190-1234",
-    zone_id: "line_1",
-    ts: "2026-10-18T09:00:00Z",
-    camera_id: "camA",
-    divergence: 0.42,
-    uncertainty_mask: 1,
-    promotion: "Amber",
-    coco_annotations: null,
-  };
+const ROW: LabelRow = {
+  frame_id: "0190-1234",
+  zone_id: "line_1",
+  ts: "2026-10-18T09:00:00Z",
+  camera_id: "camA",
+  divergence: 0.42,
+  uncertainty_mask: 1,
+  promotion: "Amber",
+  coco_annotations: null,
+};
 
+describe("Review page", () => {
   it("lists the queue and approves with the operator id", async () => {
     // Server-side model: frames leave the queue once approved.
     const queue = [ROW, { ...ROW, frame_id: "0190-5678" }];
@@ -119,6 +119,49 @@ describe("Review page", () => {
     expect(screen.getByTestId("label-0190-5678")).toBeTruthy();
     const call = mock.mock.calls.find((c) => String(c[0]).includes("/approve"))!;
     expect(String(call[0])).toBe("/api/v1/labeling/0190-1234/approve");
+    expect(call[1]?.method).toBe("POST");
+  });
+});
+
+describe("Review page reject verb", () => {
+  it("posts {operator_id, reason} and the frame leaves the queue", async () => {
+    const queue = [ROW];
+    const mock = vi.mocked(apiFetch);
+    mock.mockImplementation((path, init) => {
+      const url = typeof path === "string" ? path : String(path);
+      if (url.endsWith("/labeling/queue")) {
+        return Promise.resolve({ queue: [...queue] }) as never;
+      }
+      const match = /\/labeling\/([^/]+)\/reject$/.exec(url);
+      if (match) {
+        const body = JSON.parse((init as RequestInit).body as string) as {
+          operator_id: string;
+          reason: string;
+        };
+        expect(body.operator_id).toBe("op_1");
+        expect(body.reason.length).toBeGreaterThan(0);
+        queue.splice(
+          queue.findIndex((r) => r.frame_id === match[1]),
+          1,
+        );
+        return Promise.resolve({ frame_id: match[1], rejected: true }) as never;
+      }
+      return Promise.reject(new Error(`unexpected path: ${url}`)) as never;
+    });
+
+    wrap(<ReviewPage />);
+    await waitFor(() => expect(screen.getAllByTestId(/^label-/)).toHaveLength(1));
+
+    fireEvent.change(screen.getByTestId("operator-input"), { target: { value: "op_1" } });
+    fireEvent.click(screen.getByTestId(`reject-0190-1234`));
+    await waitFor(() => {
+      expect(screen.queryByTestId("label-0190-1234")).toBeNull();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("review-list").textContent).toContain("queue clear");
+    });
+    const call = mock.mock.calls.find((c) => String(c[0]).includes("/reject"))!;
+    expect(String(call[0])).toBe("/api/v1/labeling/0190-1234/reject");
     expect(call[1]?.method).toBe("POST");
   });
 });

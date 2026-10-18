@@ -189,6 +189,9 @@ pub enum SnapshotPromotion {
     AutoLabeled,
     LabeledOk,
     Trained,
+    /// Operator-determined: bad frame (blur, wrong zone, duplicate) —
+    /// leaves the label queue and never becomes training data.
+    Rejected,
 }
 
 impl SnapshotPromotion {
@@ -199,6 +202,7 @@ impl SnapshotPromotion {
             Self::AutoLabeled => "AutoLabeled",
             Self::LabeledOk => "LabeledOK",
             Self::Trained => "Trained",
+            Self::Rejected => "Rejected",
         }
     }
 
@@ -209,6 +213,7 @@ impl SnapshotPromotion {
             "AutoLabeled" => Self::AutoLabeled,
             "LabeledOK" => Self::LabeledOk,
             "Trained" => Self::Trained,
+            "Rejected" => Self::Rejected,
             _ => return None,
         })
     }
