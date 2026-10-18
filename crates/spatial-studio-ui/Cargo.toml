@@ -11,6 +11,9 @@ thiserror.workspace = true
 serde.workspace = true
 chrono.workspace = true
 
+[dev-dependencies]
+universal-bridge-rs = { path = "../universal-bridge-rs", version = "0.1.0" }
+
 [target.'cfg(target_family = "wasm")'.dependencies]
 
 dioxus = { version = "0.7", features = ["web"] }

@@ -295,4 +295,29 @@ mod tests {
             prop_assert_eq!(total, emitted, "no crossing delta may be lost");
         }
     }
+
+    #[test]
+    fn active_zones_are_sorted_unique_ids() {
+        let mut b = VisionTickBatcher::with_default_window();
+        let z1 = zone("cafe_gate");
+        let z10 = zone("dock_door");
+        let _ = b.push(&z10, stamp_at(0), 1, Some(0.8), 0.0);
+        let _ = b.push(&z1, stamp_at(10), 1, Some(0.9), 0.0);
+        // lexicographic order, keys sorted; zones never touched stay absent
+        assert_eq!(b.active_zones(), vec![z1, z10]);
+    }
+
+    #[test]
+    fn active_zones_drains_after_flush() {
+        let mut b = VisionTickBatcher::with_default_window();
+        let z = zone("line_1");
+        let _ = b.push(&z, stamp_at(0), 1, Some(0.8), 0.0);
+        assert_eq!(b.active_zones(), vec![z.clone()]);
+        let tick = b.flush(&z).unwrap();
+        assert_eq!(tick.crossings, 1);
+        assert!(
+            b.active_zones().is_empty(),
+            "flushed zone leaves the active set"
+        );
+    }
 }
