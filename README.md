@@ -22,45 +22,36 @@ On top of that product, Shado ships the **Universal Multimodal Spatial Intellige
 ## 2. How It Works — the plumbing in one picture
 
 ```mermaid
-flowchart LR
-    subgraph SITES["1 · Sensor layer (any venue: CCTV + Wi-Fi)"]
+flowchart TB
+    subgraph SITES["1 · Sensor layer — any venue: CCTV + Wi-Fi"]
         CAM["RTSP CCTV cameras"]
-        ESP["ESP32-S3/C5/C6 CSI nodes
-        (esp-csi-node, no_std)"]
+        ESP["ESP32-S3/C5/C6<br/>CSI nodes (no_std)"]
     end
 
     subgraph EDGE["2 · Edge box (Jetson / mini-PC) — counting is 100% local"]
-        SYN["EdgeStamp sync
-        (100 ms alignment window)"]
-        TRK["detector + ByteTrack
-        (inference-engine)"]
-        FUS["multimodal fusion
-        + occlusion carry
-        (inference-engine + edge-core-rs)"]
-        RL["contextual bandit
-        (rl-controller)"]
+        SYN["EdgeStamp sync<br/>100 ms window"]
+        TRK["ONNX detector<br/>+ ByteTrack"]
+        FUS["multimodal fusion<br/>+ occlusion carry"]
+        RL["contextual bandit<br/>(rl-controller)"]
     end
 
-    subgraph SERVE["3 · Serving & audit layer"]
-        API["axum REST + WebSocket
-        (api-server, TimescaleDB)"]
-        BRIDGE["ONVIF · MoQT · Modbus · OPC UA · TPM/C2PA
-        (universal-bridge-rs)"]
-        VLM["VLM orchestrator
-        (fallback + teacher)"]
-        UI["Control-room shell
-        (spatial-studio-ui, wasm)"]
+    subgraph SERVE["3 · Serving and audit layer"]
+        API["axum REST + WS<br/>TimescaleDB<br/>(api-server)"]
+        VLM["VLM orchestrator<br/>fallback + teacher"]
+        BR["universal-bridge-rs<br/>ONVIF · MoQT<br/>OPC UA · C2PA"]
+        UI["control-room shell<br/>(spatial-studio-ui)"]
     end
 
-    CAM -->|frames| SYN --> TRK
-    ESP -->|CSI bursts| FUS
-    TRK -->|line crossings, IDs| FUS
-    RL -->|"clamped τ / IoU / blend / buffer (RlAction)"| TRK & FUS
-    FUS -->|"PackageCountEvent + uncertainty"| API
-    API -->|rewards, corrections| RL
-    API -->|suspect frames| VLM -->|labels| RL
+    CAM -->|frames| EDGE
+    ESP -->|CSI bursts| EDGE
+    SYN -->|frames| TRK -->|crossings| FUS
+    RL -.->|clamped RlAction| TRK & FUS
+    EDGE -->|PackageCountEvent + uncertainty| API
+    API -->|rewards + corrections| RL
+    API -->|suspect frames| VLM
+    VLM -.->|labels| RL
     API --> UI
-    FUS -->|"KPIs: throughput, dwell, retry"| BRIDGE -->|ERP / MES / SCADA| BUS["Plant & venue systems"]
+    BR -->|ERP / MES / SCADA| BUS["plant and venue systems"]
 ```
 
 Three hard guarantees, enforced by types and pinned by tests:
@@ -91,34 +82,15 @@ stateDiagram-v2
 One typed contract (`monitoring-contract`), four first-class verticals; each template validates, passes the EU AI Act article-5 scan, scores **100 on the 5-check scorecard**, and feeds its native KPIs through the bridge to plant systems. All asserted in `spatial-studio-ui/tests/environments.rs` (the **any-CCTV+Wi-Fi gate**).
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 360}}}%%
 flowchart TB
-    subgraph CAFE["☕ Café / QSR drive-through"]
-        c_cam["lanes: 2–3 cams"] --> c_j["Jetson/mini-PC"]
-        c_wifi["drive-through Wi-Fi mesh"] --> c_j
-        c_j -->|"DropRetryRate,
-        dwell@pickup"| c_out["Queue length, wait-time push to POS/POPAI"]
-    end
-    subgraph FACTORY["🏭 Factory floor"]
-        f_cam["lines: 7–10 cams"] --> f_j["Jetson Orin"]
-        f_wifi["line CSI nodes (S3/C5)"] --> f_j
-        f_j -->|"CycleTimeDrift,
-        throughput"| f_out["Andon + ERP/MES, SCADA
-        (OPC UA / Modbus)"]
-    end
-    subgraph RETAIL["🛒 Retail warehouse"]
-        r_cam["aisles: 4–6 cams"] --> r_j["mini-PC"]
-        r_wifi["dock CSI nodes"] --> r_j
-        r_j -->|"StockoutLatency,
-        throughput"| r_out["Inventory + replenishment
-        webhooks (HMAC)"]
-    end
-    subgraph HEALTH["🏥 Healthcare ward"]
-        h_cam["corridors (aggregation-safe)"] --> h_j["Jetson"]
-        h_wifi["ward CSI nodes"] --> h_j
-        h_j -->|"FloorOccupancy
-        (never 1:N biometrics)"| h_out["Occupancy dashboards,
-        ε-DP station aggregation"]
-    end
+    ROOT["monitoring-contract<br/>typed rule schema<br/>targets · zones<br/>guard lines · CSI<br/>triggers · webhooks<br/>KPIs · validate()"]
+    ROOT --> q["☕ QSR drive-through<br/>2–3 lane cams<br/>mesh Wi-Fi<br/>→ drop-retry · dwell"]
+    ROOT --> f["🏭 Factory floor<br/>7–10 line cams<br/>line CSI nodes<br/>→ Andon · SCADA"]
+    ROOT --> r["🛒 Retail warehouse<br/>4–6 aisle cams<br/>dock CSI<br/>→ stockout latency"]
+    ROOT --> h["🏥 Healthcare ward<br/>corridor cams<br/>ward CSI nodes<br/>→ ε-DP occupancy"]
+    q ~~~ r
+    f ~~~ h
 ```
 
 | Environment | Template | Native KPIs | Compliance notes |
