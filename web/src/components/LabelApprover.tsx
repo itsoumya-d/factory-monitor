@@ -31,7 +31,13 @@ function boxesFromCoco(coco: CocoDataset | null): DraftBox[] {
   }));
 }
 
-/** One queued frame: inspect (frame bytes + drag-to-fix) → approve POST. */
+/** Rejects must carry a reason (backend 400 otherwise; audit trail). */
+const REJECT_REASON = "operator determined the frame is not labelable";
+
+/**
+ * One queued frame: inspect (frame bytes + drag-to-fix) → approve POST
+ * (teach = approve with annotation fixes), or reject POST with reason.
+ */
 export default function LabelApprover({
   row,
   operator,
@@ -77,6 +83,23 @@ export default function LabelApprover({
 
   const loadAndOpen = () => setInspecting(true);
 
+  const reject = async () => {
+    if (!operator.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await apiFetch(`/api/v1/labeling/${encodeURIComponent(row.frame_id)}/reject`, {
+        method: "POST",
+        body: JSON.stringify({ operator_id: operator.trim(), reason: REJECT_REASON }),
+      });
+      onDone(row.frame_id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const flags = parseUncertainty(row.uncertainty_mask);
   return (
     <li className="rounded border border-zinc-800 bg-zinc-900 p-3" data-testid={`label-${row.frame_id}`}>
@@ -121,15 +144,26 @@ export default function LabelApprover({
         </div>
       )}
       {error && <p className="text-sm text-red-400">{error}</p>}
-      <button
-        type="button"
-        onClick={() => void approve()}
-        disabled={busy || operator.trim().length === 0}
-        className="mt-2 rounded bg-lime-500 px-3 py-1 text-sm font-medium text-zinc-950 disabled:opacity-40"
-        data-testid={`approve-${row.frame_id}`}
-      >
-        {busy ? "approving…" : "approve"}
-      </button>
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          onClick={() => void approve()}
+          disabled={busy || operator.trim().length === 0}
+          className="rounded bg-lime-500 px-3 py-1 text-sm font-medium text-zinc-950 disabled:opacity-40"
+          data-testid={`approve-${row.frame_id}`}
+        >
+          {busy ? "sending…" : "approve"}
+        </button>
+        <button
+          type="button"
+          onClick={() => void reject()}
+          disabled={busy || operator.trim().length === 0}
+          className="rounded bg-zinc-800 px-3 py-1 text-sm text-zinc-300 disabled:opacity-40"
+          data-testid={`reject-${row.frame_id}`}
+        >
+          reject
+        </button>
+      </div>
     </li>
   );
 }
