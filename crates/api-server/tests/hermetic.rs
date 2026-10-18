@@ -649,6 +649,93 @@ async fn label_queue_reject_never_yields_training_data() {
     .await;
     assert_eq!(code, StatusCode::NOT_FOUND);
 }
+#[tokio::test]
+async fn suspect_window_route_serves_nearest_frames_same_zone_only() {
+    let h = harness();
+
+    async fn seed(h: &Harness, zone: &str, cam: &str, minute: u32, flagged: bool) {
+        let base = ts(10);
+        h.repos
+            .put_snapshot(SnapshotRow {
+                frame_id: Uuid::now_v7(),
+                zone_id: ZoneId::try_new(zone).expect("z"),
+                ts: base + chrono::Duration::minutes(minute as i64),
+                camera_id: CameraId::try_new(cam).expect("c"),
+                jpeg_lowres: Some(vec![0xFF, 0xD8]),
+                uncertainty_mask: if flagged { 1 } else { 0 },
+                divergence: None,
+                state: serde_json::json!({}),
+                promotion: SnapshotPromotion::Amber,
+                vlm_root_cause: None,
+                coco_annotations: None,
+                reviewed_by: None,
+                reviewed_at: None,
+            })
+            .await
+            .expect("seed");
+    }
+
+    // Six zone frames across the hour (10:05 … 10:55), one flagged at 10:25.
+    for (i, m) in [5u32, 15, 25, 35, 45, 55].iter().enumerate() {
+        seed(&h, "dock_gate", "camD", *m, i == 2).await;
+    }
+    // Decoy in another zone inside the same span; must never appear.
+    seed(&h, "other_zone", "camD", 15, true).await;
+    // Out-of-band frame far in the future.
+    seed(&h, "dock_gate", "camD", 119, false).await;
+
+    let (code, json) = call_json(
+        &h.router,
+        get(&format!(
+            "/api/v1/snapshots/window?zone_id=dock_gate&ts={}",
+            ts(10).format("%Y-%m-%dT%H:%M:%SZ")
+        )),
+        body(""),
+    )
+    .await;
+    assert_eq!(code, StatusCode::OK);
+    assert_eq!(json["zone_id"], "dock_gate");
+    let frames = json["frames"].as_array().expect("frames");
+    // Default span 600s each side of 10:00 → only 10:05 is close; the
+    // next-nearest frames (10:15 is 660s away > 600) stay out.
+    assert_eq!(frames.len(), 1, "{json}");
+
+    // Widen the span: hour window (86_400 cap never binds at 1800), focal
+    // picks the nearest frame to 10:00:00 exactly (10:05), and the decoy
+    // zone frame never leaks in.
+    let (code, json) = call_json(
+        &h.router,
+        get(&format!(
+            "/api/v1/snapshots/window?zone_id=dock_gate&ts={}&span=1800",
+            ts(10).format("%Y-%m-%dT%H:%M:%SZ")
+        )),
+        body(""),
+    )
+    .await;
+    assert_eq!(code, StatusCode::OK);
+    let frames = json["frames"].as_array().expect("frames");
+    // 10:00 ±1800s → 10:05, 10:15, 10:25 (10:35 is 900s past the edge).
+    assert_eq!(frames.len(), 3, "{json}");
+    // Chronological re-ordering after the nearest-first focal pick.
+    assert!(frames[0]["ts"].as_str().unwrap().contains(":05:00"));
+    assert!(frames[2]["ts"].as_str().unwrap().contains(":25:00"));
+    // Focal = nearest frame to the queried moment.
+    assert_eq!(frames[0]["frame_id"], json["focal_frame_id"]);
+
+    // Empty state: span sits in a frameless corner of the day.
+    let (code, json) = call_json(
+        &h.router,
+        get(&format!(
+            "/api/v1/snapshots/window?zone_id=ghost_zone&ts={}&span=60",
+            ts(16).format("%Y-%m-%dT%H:%M:%SZ")
+        )),
+        body(""),
+    )
+    .await;
+    assert_eq!(code, StatusCode::OK);
+    assert_eq!(json["frames"].as_array().unwrap().len(), 0);
+    assert_eq!(json["focal_frame_id"], serde_json::Value::Null);
+}
 
 #[tokio::test]
 async fn ws_topics_reject_unknowns() {

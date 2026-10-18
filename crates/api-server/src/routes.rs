@@ -105,6 +105,7 @@ pub fn build_router(state: Shared) -> Router {
         )
         .route("/api/v1/labeling/{frame_id}/approve", post(approve_label))
         .route("/api/v1/labeling/{frame_id}/reject", post(reject_label))
+        .route("/api/v1/snapshots/window", get(get_suspect_window))
         .route("/ws/live", get(ws_live))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
@@ -518,6 +519,54 @@ async fn get_rl_history(
 }
 
 // ------------------- snapshots / labeling -------------------
+
+#[derive(serde::Deserialize)]
+struct SuspectWindowQuery {
+    zone_id: String,
+    ts: DateTime<Utc>,
+    /// Seconds each side of `ts`; clamped into [10, 86_400].
+    span: Option<i64>,
+}
+
+/// docs/12 §3 SuspectWindowViewer backing route: the sampled context frames
+/// around one suspect moment, nearest first then re-ordered chronologically.
+/// Snapshots of other zones are excluded; jpeg bytes stay behind
+/// `/api/v1/snapshots/image/{frame_id}` so this payload stays light.
+async fn get_suspect_window(
+    State(state): State<Shared>,
+    Query(q): Query<SuspectWindowQuery>,
+) -> Result<Json<Value>, ApiError> {
+    let zone = ZoneId::try_new(&q.zone_id).map_err(|e| ApiError::BadRequest(format!("{e:?}")))?;
+    let span_secs = q.span.unwrap_or(600).clamp(10, 86_400);
+    let from = q.ts - chrono::Duration::seconds(span_secs);
+    let to = q.ts + chrono::Duration::seconds(span_secs);
+    let mut near = state
+        .repos
+        .query_snapshots(Some(&zone), Some(from), Some(to), false)
+        .await?;
+    // keep the twelve nearest to the focal moment (tie → later ts wins)
+    near.sort_by_key(|r| (r.ts - q.ts).num_milliseconds().abs());
+    let focal = near.first().map(|r| r.frame_id).unwrap_or(Uuid::nil());
+    near.truncate(12);
+    near.sort_by_key(|r| r.ts);
+    let frames: Vec<Value> = near
+        .iter()
+        .map(|r| {
+            json!({
+                "frame_id": r.frame_id, "ts": r.ts, "camera_id": r.camera_id,
+                "uncertainty_mask": r.uncertainty_mask,
+                "divergence": r.divergence,
+                "promotion": r.promotion,
+            })
+        })
+        .collect();
+    Ok(Json(json!({
+        "zone_id": zone.to_string(),
+        "ts": q.ts,
+        "focal_frame_id": if frames.is_empty() { None } else { Some(focal) },
+        "frames": frames,
+    })))
+}
 
 #[derive(Deserialize)]
 struct SnapshotQueryBody {

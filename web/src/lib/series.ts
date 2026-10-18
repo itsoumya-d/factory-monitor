@@ -7,6 +7,8 @@ export interface HourlyRow {
   hour: string;
   zone_id: string;
   delta: number;
+  /** zone-day avg_conf as the backend hourly rollup carries it (docs/10). */
+  avg_conf?: number;
 }
 
 /** Hour bucket exactly as the Rust agg module serializes it (docs/10). */
@@ -30,6 +32,7 @@ export function fromHourlyPoints(zoneId: string, pts: HourlyPoint[]): HourlyRow[
     zone_id: zoneId,
     hour: p.hour.slice(11, 13),
     delta: p.packages,
+    avg_conf: p.avg_conf,
   }));
 }
 
@@ -68,4 +71,29 @@ export function zoneList(rows: HourlyRow[]): string[] {
 /** Daily goal driven from the docs (e.g. 25% of the last good day). */
 export function goalPerHour(goalTotal: number): number {
   return Math.round(goalTotal / 24);
+}
+
+/** docs/12 §5 run 4: LOW_CONFIDENCE spans = worst hourly rollups per zone. */
+export interface ReviewWindow {
+  zone_id: string;
+  hour: string;
+  avg_conf: number;
+}
+
+/** Hours whose zone avg_conf falls below the review threshold. */
+export function lowConfidenceWindows(rows: HourlyRow[], threshold = 0.75): ReviewWindow[] {
+  const windows: ReviewWindow[] = [];
+  for (const r of rows) {
+    if (r.avg_conf !== undefined && r.avg_conf < threshold) {
+      windows.push({ zone_id: r.zone_id, hour: r.hour, avg_conf: r.avg_conf });
+    }
+  }
+  return windows.sort((a, b) => (a.zone_id + a.hour).localeCompare(b.zone_id + b.hour));
+}
+
+/** docs/12 §5 run 5: the CSV export (hourly rollup, one row per zone-hour). */
+export function reportCsv(rows: HourlyRow[], date: string): string {
+  const head = `zone_id,hour,packages,avg_conf,date`;
+  const lines = rows.map((r) => `${r.zone_id},${r.hour},${r.delta},${r.avg_conf?.toFixed(3) ?? ""},${date}`);
+  return [head, ...lines].join("\n");
 }
