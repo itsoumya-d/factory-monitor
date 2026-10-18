@@ -78,6 +78,7 @@ describe("Review page", () => {
     divergence: 0.42,
     uncertainty_mask: 1,
     promotion: "Amber",
+    coco_annotations: null,
   };
 
   it("lists the queue and approves with the operator id", async () => {
@@ -94,7 +95,7 @@ describe("Review page", () => {
         const body = JSON.parse((init as RequestInit).body as string) as {
           operator_id: string;
         };
-        expect(body).toEqual({ operator_id: "op_1" });
+        expect(body).toEqual({ operator_id: "op_1", coco_annotations: null });
         const i = queue.findIndex((r) => r.frame_id === match[1]);
         expect(i).toBeGreaterThanOrEqual(0);
         queue.splice(i, 1);

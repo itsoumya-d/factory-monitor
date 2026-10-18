@@ -8,7 +8,7 @@ use std::time::Duration;
 use axum::body::Body;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path, Query, State};
-use axum::http::{HeaderName, HeaderValue, Request, StatusCode};
+use axum::http::{HeaderName, HeaderValue, Request, StatusCode, header};
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
@@ -99,6 +99,10 @@ pub fn build_router(state: Shared) -> Router {
         .route("/api/v1/rl/history", get(get_rl_history))
         .route("/api/v1/snapshots/query", post(query_snapshots))
         .route("/api/v1/labeling/queue", get(get_label_queue))
+        .route(
+            "/api/v1/snapshots/image/{frame_id}",
+            get(get_snapshot_image),
+        )
         .route("/api/v1/labeling/{frame_id}/approve", post(approve_label))
         .route("/ws/live", get(ws_live))
         .route_layer(middleware::from_fn_with_state(
@@ -570,6 +574,7 @@ async fn get_label_queue(State(state): State<Shared>) -> Result<Json<Value>, Api
                 "frame_id": r.frame_id, "zone_id": r.zone_id, "ts": r.ts,
                 "camera_id": r.camera_id, "divergence": r.divergence,
                 "uncertainty_mask": r.uncertainty_mask, "promotion": r.promotion,
+                "coco_annotations": r.coco_annotations,
             })
         })
         .collect();
@@ -605,6 +610,25 @@ async fn approve_label(
         "approved": true,
         "reviewed_by": sub.operator_id,
     })))
+}
+
+// ------------------- priv: frame bytes for the label viewer -------------------
+
+async fn get_snapshot_image(
+    State(state): State<Shared>,
+    Path(frame_id): Path<Uuid>,
+) -> Result<Response, ApiError> {
+    let row = state
+        .repos
+        .get_snapshot(frame_id)
+        .await?
+        .ok_or_else(|| ApiError::NotFound(format!("snapshot {frame_id}")))?;
+    let bytes = row
+        .jpeg_lowres
+        .ok_or_else(|| ApiError::NotFound(format!("no image bytes for {frame_id}")))?;
+    // The repo search route strips these blobs; ONLY this endpoint hands
+    // frame bytes to the operator (repo.rs compensating control).
+    Ok(([(header::CONTENT_TYPE, "image/jpeg")], bytes).into_response())
 }
 
 // ------------------- websocket -------------------

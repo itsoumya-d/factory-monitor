@@ -20,7 +20,10 @@ export default defineConfig({
   },
   outputDir: "test-results",
   webServer: {
-    command: "npm run dev",
+    // Serve the production build (build step runs well before this):
+    // dev-server on-demand compiles buckle under 4 parallel first-compile
+    // routes, which made the suite flaky; a prod server is deterministic.
+    command: "npx next start",
     url: "http://127.0.0.1:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

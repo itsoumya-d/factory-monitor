@@ -12,7 +12,7 @@ use api_server::routes::build_router;
 use api_server::state::AppState;
 use axum::Router;
 use axum::body::Body;
-use axum::http::{Request, StatusCode};
+use axum::http::{Request, StatusCode, header};
 use chrono::{Duration, TimeZone, Utc};
 use common_types::bounds::DetectorThresholds;
 use common_types::counting::{PackageCountEvent, UncertaintyFlags};
@@ -452,6 +452,62 @@ async fn snapshots_query_and_label_queue() {
     let queue = json["queue"].as_array().expect("queue");
     assert_eq!(queue.len(), 1, "only the flagged amber row is queued");
     assert_eq!(queue[0]["frame_id"].as_str(), Some(frame_id.as_str()));
+    assert!(
+        queue[0].get("coco_annotations").is_some(),
+        "editor preload field present (null until the VLM writes one)"
+    );
+}
+
+#[tokio::test]
+async fn snapshot_image_route_serves_bytes_only_when_present() {
+    let h = harness();
+    let mut snap = SnapshotRow {
+        frame_id: Uuid::now_v7(),
+        zone_id: ZoneId::try_new("line_1").expect("z"),
+        ts: ts(10),
+        camera_id: CameraId::try_new("camA").expect("c"),
+        jpeg_lowres: Some(vec![0xFF, 0xD8, 0xFF, 0xE0]),
+        uncertainty_mask: 1,
+        divergence: Some(0.2),
+        state: serde_json::json!({}),
+        promotion: SnapshotPromotion::Amber,
+        vlm_root_cause: None,
+        coco_annotations: None,
+        reviewed_by: None,
+        reviewed_at: None,
+    };
+    h.repos.put_snapshot(snap.clone()).await.expect("snap");
+
+    // Bytes flow only through this endpoint.
+    let resp = h
+        .router
+        .clone()
+        .oneshot(get(&format!("/api/v1/snapshots/image/{}", snap.frame_id)))
+        .await
+        .expect("oneshot image");
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(
+        resp.headers()
+            .get(header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok()),
+        Some("image/jpeg")
+    );
+
+    // A row without bytes is a 404, not an empty 200.
+    snap.jpeg_lowres = None;
+    let bare = Uuid::now_v7();
+    snap.frame_id = bare;
+    h.repos.put_snapshot(snap).await.expect("snap bare");
+    let (code, _) = call_text(&h.router, get(&format!("/api/v1/snapshots/image/{bare}"))).await;
+    assert_eq!(code, StatusCode::NOT_FOUND);
+
+    // Unknown frame too.
+    let (code, _) = call_text(
+        &h.router,
+        get(&format!("/api/v1/snapshots/image/{}", Uuid::now_v7())),
+    )
+    .await;
+    assert_eq!(code, StatusCode::NOT_FOUND);
 }
 
 #[tokio::test]
