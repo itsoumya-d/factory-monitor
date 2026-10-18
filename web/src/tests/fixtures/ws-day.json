@@ -1,0 +1,13 @@
+[
+  { "kind": "count_event", "payload": { "event_id": "e1", "zone_id": "dock_gate", "ts": "2026-10-18T10:00:00Z", "count_delta": 2, "confidence": 0.91 } },
+  { "kind": "count_event", "payload": { "event_id": "e1", "zone_id": "dock_gate", "ts": "2026-10-18T10:00:01Z", "count_delta": 7, "confidence": 0.91 } },
+  { "kind": "count_event", "payload": { "event_id": "e2", "zone_id": "line_1", "ts": "2026-10-18T10:00:02Z", "count_delta": 3, "confidence": 0.88 } },
+  { "kind": "fusion_signal", "payload": { "zone_id": "dock_gate", "vision_weight": 0.72, "csi_weight": 0.28, "carry_frames": 4 } },
+  { "kind": "rl_transition", "payload": { "before": { "conf_threshold": 0.45, "iou_threshold": 0.45, "vision_weight": 0.7, "track_buffer_frames": 45 }, "after": { "conf_threshold": 0.51, "iou_threshold": 0.5, "vision_weight": 0.72, "track_buffer_frames": 60 }, "reason": "eod_correction", "rejected": false } },
+  { "kind": "lifecycle_event", "payload": { "state": "Counting", "note": "lights on, CSI stable" } },
+  { "kind": "camera_health", "payload": { "camera_id": "camD", "online": true, "fps": 5.02 } },
+  { "kind": "label_queue_added", "payload": { "frame_id": "0190-abc", "ts": "2026-10-18T10:00:03Z", "zone_id": "dock_gate" } },
+  { "kind": "junk_kind", "payload": { "non": "sense" } },
+  { "kind": "count_event", "payload": { "event_id": "e3", "zone_id": "dock_gate", "ts": "2026-10-18T10:00:04Z", "count_delta": 5, "confidence": 0.9 } },
+  { "kind": "count_event", "payload": { "event_id": "e1", "zone_id": "dock_gate", "ts": "2026-10-18T10:00:05Z", "count_delta": 100, "confidence": 0.9 } }
+]

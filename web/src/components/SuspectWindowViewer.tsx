@@ -161,6 +161,11 @@ export default function SuspectWindowViewer({
             <li>camera {active.camera_id}</li>
             <li>promotion {active.promotion}</li>
             <li>divergence {active.divergence ?? "—"}</li>
+            {active.vlm_root_cause && (
+              <li data-testid="suspect-root-cause" className="text-amber-300">
+                root cause: {active.vlm_root_cause}
+              </li>
+            )}
             <li className="flex gap-1" data-testid="suspect-flags">
               {flags.length > 0 ? (
                 flags.map((fl) => (

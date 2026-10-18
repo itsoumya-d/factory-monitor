@@ -90,6 +90,11 @@ export const STALE_AFTER_MS = 10_000;
 export class EventDedupe {
   private seen = new Set<string>(new Array(0));
 
+  /** docs/12 §7 replay harness: forget seen ids between fixture runs. */
+  clear(): void {
+    this.seen.clear();
+  }
+
   accept(id: string): boolean {
     if (this.seen.has(id)) return false;
     this.seen.add(id);

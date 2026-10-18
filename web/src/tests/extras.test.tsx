@@ -32,8 +32,8 @@ describe("SuspectWindowViewer (docs/12 §3)", () => {
     ts: "2026-10-18T10:00:00Z",
     focal_frame_id: "f0",
     frames: [
-      { frame_id: "f0", ts: "2026-10-18T09:55:00Z", camera_id: "camD", uncertainty_mask: 1, divergence: null, promotion: "Amber" },
-      { frame_id: "f1", ts: "2026-10-18T10:00:00Z", camera_id: "camD", uncertainty_mask: 0, divergence: 0.4, promotion: "Amber" },
+      { frame_id: "f0", ts: "2026-10-18T09:55:00Z", camera_id: "camD", uncertainty_mask: 1, divergence: null, promotion: "Amber", vlm_root_cause: "steam occlusion | 0.82" },
+      { frame_id: "f1", ts: "2026-10-18T10:00:00Z", camera_id: "camD", uncertainty_mask: 0, divergence: 0.4, promotion: "Amber", vlm_root_cause: null },
     ],
   };
 
@@ -71,11 +71,13 @@ describe("SuspectWindowViewer (docs/12 §3)", () => {
     await waitFor(() => {
       expect(screen.getByTestId("suspect-flags").textContent).toContain("OCCLUDED_ESTIMATE");
     });
-    // scrub to the clean frame → no flags
+    // the flagged frame's root-cause text rides along; the clean frame hides it
+    expect(screen.getByTestId("suspect-root-cause").textContent).toContain("steam occlusion");
     fireEvent.click(screen.getByTestId("suspect-tile-1"));
     await waitFor(() => {
       expect(screen.getByTestId("suspect-flags").textContent).toContain("no uncertainty flags");
     });
+    expect(screen.queryByTestId("suspect-root-cause")).toBeNull();
     expect(screen.getByTestId("suspect-ts").textContent).toBe("2026-10-18T10:00:00Z");
     fireEvent.click(screen.getByTestId("suspect-close"));
     await waitFor(() => expect(screen.queryByTestId("suspect-window")).toBeNull());

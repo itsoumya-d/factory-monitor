@@ -362,6 +362,7 @@ pub trait Repos: Send + Sync {
         from: Option<DateTime<Utc>>,
         to: Option<DateTime<Utc>>,
         only_flagged: bool,
+        newest_first: bool,
     ) -> Result<Vec<SnapshotRow>, ApiError>;
 }
 
@@ -611,6 +612,7 @@ impl Repos for InMemoryRepo {
         from: Option<DateTime<Utc>>,
         to: Option<DateTime<Utc>>,
         only_flagged: bool,
+        newest_first: bool,
     ) -> Result<Vec<SnapshotRow>, ApiError> {
         let store = self.lock();
         let mut rows = store
@@ -626,7 +628,11 @@ impl Repos for InMemoryRepo {
             .collect::<Vec<_>>();
         // Hard row cap matching the SQL LIMIT 500 in db.rs.
         rows.truncate(500);
-        rows.sort_by_key(|s| s.ts);
+        if newest_first {
+            rows.sort_by_key(|s| std::cmp::Reverse(s.ts));
+        } else {
+            rows.sort_by_key(|s| s.ts);
+        }
         Ok(rows)
     }
 }

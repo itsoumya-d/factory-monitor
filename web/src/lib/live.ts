@@ -42,13 +42,14 @@ function zoneOf(s: Map<string, ZoneLive>, zoneId: string): ZoneLive {
   return fresh;
 }
 
-function onEnvelope(
-  set: (cb: (s: LiveState) => Partial<LiveState>) => void,
-  env: WsEnvelope,
-) {
-  set((s) => {
-    const base = { lastMessageAt: Date.now() } as Partial<LiveState>;
-    switch (env.kind) {
+/**
+ * Apply one WS envelope to the live state (docs/10 §3 pump semantics:
+ * dup event_ids dropped, unknown kinds ignored). Test hook: docs/12 §7's
+ * replay harness feeds fixture days through applyEnvelope directly.
+ */
+export function applyEnvelope(s: LiveState, env: WsEnvelope): Partial<LiveState> {
+  const base = { lastMessageAt: Date.now() } as Partial<LiveState>;
+  switch (env.kind) {
       case "count_event": {
         const e = env.payload as CountEvent;
         if (!dedupe.accept(e.event_id)) return base;
@@ -82,7 +83,6 @@ function onEnvelope(
       default:
         return base;
     }
-  });
 }
 
 interface LiveApi {
@@ -130,7 +130,7 @@ async function openLive(path: string, attempt: number) {
     sock.onmessage = (msg) => {
       try {
         const env = JSON.parse(String(msg.data)) as WsEnvelope;
-        onEnvelope((cb) => useLiveBase.setState(cb), env);
+        useLiveBase.setState((s) => ({ ...s, ...applyEnvelope(s, env) }));
       } catch (error) {
         void error; // malformed frame: ignore (docs/10 §3 pump guarantees shapes)
       }
@@ -162,6 +162,23 @@ function closeLive() {
 const staleTicker = () =>
   useLiveBase.setState((s: LiveState) => ({ ...s, now: Date.now() }));
 if (typeof window !== "undefined") setInterval(staleTicker, 1000);
+
+/** Test hook for the docs/12 §7 replay harness: current live state. */
+export function liveSnapshot(): LiveState {
+  const liveApi = useLiveBase.getState();
+  return {
+    ...liveApi,
+    counts: new Map(liveApi.counts),
+    fusion: new Map(liveApi.fusion),
+    health: new Map(liveApi.health),
+    labels: [...liveApi.labels],
+  };
+}
+
+/** Test hook: forget dedupe memory between fixture replays. */
+export function replayReset(): void {
+  dedupe.clear();
+}
 
 export const useLive = useLiveBase as unknown as UseLiveStore;
 useLive.api = {

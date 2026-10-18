@@ -679,6 +679,26 @@ async fn suspect_window_route_serves_nearest_frames_same_zone_only() {
     for (i, m) in [5u32, 15, 25, 35, 45, 55].iter().enumerate() {
         seed(&h, "dock_gate", "camD", *m, i == 2).await;
     }
+    // Attach the VLM root-cause report to the flagged 10:25 frame via the
+    // dedicated row update path.
+    let flagged = h
+        .repos
+        .query_snapshots(
+            Some(&ZoneId::try_new("dock_gate").expect("z")),
+            None,
+            None,
+            true,
+        )
+        .await
+        .expect("query")
+        .into_iter()
+        .find(|r| r.uncertainty_mask != 0);
+    let mut flagged = flagged.expect("flagged seed");
+    // the column is an opaque report string until the VLM ingest surface
+    // lands (docs/12 §3 note) — asserting the passthrough shape
+    flagged.vlm_root_cause = Some("steam occlusion | pallet misread | 0.82".to_string());
+    h.repos.put_snapshot(flagged).await.expect("reopen");
+
     // Decoy in another zone inside the same span; must never appear.
     seed(&h, "other_zone", "camD", 15, true).await;
     // Out-of-band frame far in the future.
@@ -716,6 +736,15 @@ async fn suspect_window_route_serves_nearest_frames_same_zone_only() {
     let frames = json["frames"].as_array().expect("frames");
     // 10:00 ±1800s → 10:05, 10:15, 10:25 (10:35 is 900s past the edge).
     assert_eq!(frames.len(), 3, "{json}");
+    // The flagged frame carries its VLM root-cause report through the wire.
+    let flagged_row = frames
+        .iter()
+        .find(|f| f["uncertainty_mask"] != 0)
+        .expect("flagged row");
+    assert_eq!(
+        flagged_row["vlm_root_cause"],
+        "steam occlusion | pallet misread | 0.82"
+    );
     // Chronological re-ordering after the nearest-first focal pick.
     assert!(frames[0]["ts"].as_str().unwrap().contains(":05:00"));
     assert!(frames[2]["ts"].as_str().unwrap().contains(":25:00"));

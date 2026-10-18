@@ -557,6 +557,7 @@ async fn get_suspect_window(
                 "uncertainty_mask": r.uncertainty_mask,
                 "divergence": r.divergence,
                 "promotion": r.promotion,
+                "vlm_root_cause": r.vlm_root_cause,
             })
         })
         .collect();
@@ -575,6 +576,9 @@ struct SnapshotQueryBody {
     to: Option<DateTime<Utc>>,
     only_flagged: Option<bool>,
     limit: Option<usize>,
+    /// ORDER BY ts DESC — used by the ROI editor to fetch the newest
+    /// frame per zone as a drawing backdrop (docs/12 §3 camera stills).
+    newest: Option<bool>,
 }
 
 async fn query_snapshots(
@@ -593,6 +597,7 @@ async fn query_snapshots(
             body.from,
             body.to,
             body.only_flagged.unwrap_or(false),
+            body.newest.unwrap_or(false),
         )
         .await?;
     let cap = body.limit.unwrap_or(100).min(500);
@@ -613,7 +618,7 @@ async fn query_snapshots(
 }
 
 async fn get_label_queue(State(state): State<Shared>) -> Result<Json<Value>, ApiError> {
-    let rows = state.repos.query_snapshots(None, None, None, true).await?;
+    let rows = state.repos.query_snapshots(None, None, None, true, false).await?;
     let queue: Vec<Value> = rows
         .iter()
         .filter(|r| {

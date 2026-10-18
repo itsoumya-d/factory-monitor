@@ -120,6 +120,8 @@ export interface SuspectFrame {
   uncertainty_mask: number;
   divergence: number | null;
   promotion: string;
+  /** opaque VLM report string per the snapshot row (docs/12 §3 note). */
+  vlm_root_cause?: string | null;
 }
 
 export interface SuspectWindow {
