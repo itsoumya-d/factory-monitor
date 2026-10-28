@@ -1,0 +1,7 @@
+**/bin
+**/obj
+local-feed
+.nuget-packages
+*.db
+*.db-shm
+*.db-wal

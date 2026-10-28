@@ -1,0 +1,21 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: src/FuelIntegrationHub.Api/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: "Data Source=/app/data/fuel-integration.db"
+      Database__EnsureCreated: "true"
+      Database__Seed: "true"
+      Security__ApiKey: "local-development-api-key-not-a-secret"
+      Security__WebhookSecret: "local-development-webhook-secret-not-a-secret"
+      Outbox__Enabled: "true"
+      Erp__Mode: "Simulated"
+    volumes:
+      - fuel-data:/app/data
+
+volumes:
+  fuel-data:

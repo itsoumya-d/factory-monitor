@@ -1,0 +1,19 @@
+@host = http://localhost:5085
+@apiKey = local-development-api-key-not-a-secret
+
+GET {{host}}/health
+
+###
+
+GET {{host}}/api/v1/sites
+X-Api-Key: {{apiKey}}
+
+###
+
+GET {{host}}/api/v1/ops/metrics
+X-Api-Key: {{apiKey}}
+
+###
+
+GET {{host}}/api/v1/ops/outbox?status=Pending&limit=50
+X-Api-Key: {{apiKey}}

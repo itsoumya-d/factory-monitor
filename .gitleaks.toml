@@ -1,0 +1,8 @@
+[allowlist]
+description = "Explicit local development and test placeholders that were previously committed in this PR"
+regexes = [
+  '''local-development-api-key-not-a-secret''',
+  '''local-development-webhook-secret-not-a-secret''',
+  '''test-only-api-key-not-a-secret''',
+  '''test-only-webhook-secret-not-a-secret'''
+]
