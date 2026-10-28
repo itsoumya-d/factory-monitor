@@ -10,8 +10,8 @@ services:
       ConnectionStrings__Default: "Data Source=/app/data/fuel-integration.db"
       Database__EnsureCreated: "true"
       Database__Seed: "true"
-      Security__ApiKey: "local-api-key-32-characters-0001"
-      Security__WebhookSecret: "local-webhook-secret-32-characters-0001"
+      Security__ApiKey: "local-development-api-key-not-a-secret"
+      Security__WebhookSecret: "local-development-webhook-secret-not-a-secret"
       Outbox__Enabled: "true"
       Erp__Mode: "Simulated"
     volumes:

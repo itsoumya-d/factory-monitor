@@ -1,5 +1,5 @@
 @host = http://localhost:5085
-@apiKey = dev-only-api-key-32-characters-0001
+@apiKey = local-development-api-key-not-a-secret
 
 GET {{host}}/health
 

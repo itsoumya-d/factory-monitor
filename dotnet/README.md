@@ -111,11 +111,11 @@ The development profile listens on `http://localhost:5085`. It creates and seeds
 ```bash
 BODY='{"externalId":"TX-DEMO-001","occurredAt":"2026-10-28T08:00:00Z","dispenserCode":"D1","productCode":"91","litres":40,"unitPrice":2.45,"paymentMethod":"FleetCard"}'
 TS=$(date +%s)
-SIG=$(printf "%s\n%s" "$TS" "$BODY" | openssl dgst -sha256 -hmac "dev-only-webhook-secret-32-characters-0001" -hex | sed 's/^.* //')
+SIG=$(printf "%s\n%s" "$TS" "$BODY" | openssl dgst -sha256 -hmac "local-development-webhook-secret-not-a-secret" -hex | sed 's/^.* //')
 
 curl -sS -X POST "http://localhost:5085/api/v1/sites/AKL-01/transactions" \
   -H "Content-Type: application/json" \
-  -H "X-Api-Key: dev-only-api-key-32-characters-0001" \
+  -H "X-Api-Key: local-development-api-key-not-a-secret" \
   -H "X-Octane-Timestamp: $TS" \
   -H "X-Octane-Signature: sha256=$SIG" \
   -d "$BODY"
@@ -126,7 +126,7 @@ curl -sS -X POST "http://localhost:5085/api/v1/sites/AKL-01/transactions" \
 ```bash
 curl -sS -X POST "http://localhost:5085/api/v1/sites/AKL-01/reconciliations" \
   -H "Content-Type: application/json" \
-  -H "X-Api-Key: dev-only-api-key-32-characters-0001" \
+  -H "X-Api-Key: local-development-api-key-not-a-secret" \
   -d '{"periodStart":"2026-10-28T00:00:00Z","periodEnd":"2026-10-29T00:00:00Z","erpLitres":39.8,"thresholdPercent":0.5}'
 ```
 
