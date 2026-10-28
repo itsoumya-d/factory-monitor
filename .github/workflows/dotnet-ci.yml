@@ -68,3 +68,64 @@ jobs:
           name: fuel-integration-hub-api
           path: dotnet/publish/
           if-no-files-found: error
+
+  smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dotnet
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore FuelIntegrationHub.slnx
+
+      - name: Build
+        run: dotnet build FuelIntegrationHub.slnx -c Release --no-restore
+
+      - name: Start API
+        run: |
+          rm -f src/FuelIntegrationHub.Api/fuel-integration.db*
+          nohup env \
+            ASPNETCORE_ENVIRONMENT=Development \
+            ASPNETCORE_URLS=http://127.0.0.1:5099 \
+            Database__EnsureCreated=true \
+            Database__Seed=true \
+            Security__ApiKey=local-development-api-key-not-a-secret \
+            Security__WebhookSecret=local-development-webhook-secret-not-a-secret \
+            Erp__Mode=Simulated \
+            dotnet run --project src/FuelIntegrationHub.Api -c Release --no-build --no-launch-profile \
+            > api-smoke.log 2>&1 &
+          echo $! > api-smoke.pid
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:5099/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat api-smoke.log
+          exit 1
+
+      - name: Run API smoke
+        run: bash scripts/verify-api.sh
+
+      - name: Stop API
+        if: always()
+        run: |
+          if [ -f api-smoke.pid ]; then
+            kill "$(cat api-smoke.pid)" || true
+          fi
+          pkill -f "FuelIntegrationHub.Api" || true
+
+      - name: Upload smoke log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-smoke-log
+          path: dotnet/api-smoke.log
+          if-no-files-found: ignore

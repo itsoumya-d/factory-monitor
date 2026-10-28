@@ -10,15 +10,16 @@ On top of that product, Shado ships the **Universal Multimodal Spatial Intellige
 
 ### .NET 10 ERP integration service
 
-[`dotnet/`](dotnet/) contains **Fuel Integration Hub**, a production-grade .NET 10 service for fuel-site transaction ingestion, idempotent ERP delivery, and litre reconciliation. It is built around the C#/.NET, SQL, API integration, CI/CD, Azure, mentoring, and AI-assisted-development requirements of the Octane Systems Senior Software Developer role.
+[`dotnet/`](dotnet/) contains **Fuel Integration Hub**, a production-grade .NET 10 service for fuel-site transaction ingestion, idempotent ERP delivery, and litre reconciliation. It is built around the C#/.NET, SQL, API integration, CI/CD quality gates, Azure, mentoring, and AI-assisted-development requirements of enterprise integration and automation roles.
 
 - **31 tests green** (16 domain, 15 API integration) with `dotnet build` warnings-as-errors and a `dotnet format` CI gate.
 - **HTTP edge:** ASP.NET Core Minimal APIs, API-key authentication, HMAC-SHA256 webhook verification over raw bodies, RFC 9457 Problem Details.
 - **Data:** EF Core 10, unique idempotency keys, check constraints, concurrency tokens, time-range indexes, paged queries, reconciliation aggregates.
 - **Integration:** transactional outbox, exponential backoff, dead-letter requeue, at-least-once delivery with a stable ERP idempotency key.
+- **Automation:** end-to-end signed API smoke harness, deterministic integration tests, CI coverage, vulnerability audit, and a documented automation strategy.
 - **Delivery:** GitHub Actions (`dotnet-ci.yml`), Dockerfile, Azure Container Apps + Azure Files + Log Analytics Bicep, Dependabot.
 - **Benchmark:** 4,778 tx/s ingest, 316,884 rows/s reconciliation, 10.72 ms paged query on a 50,000-transaction SQLite dataset.
-- **Leadership:** ADRs, engineering standards, runbook, PR checklist, `AGENTS.md`, Copilot instructions, and an AI-assisted development adoption plan.
+- **Leadership:** ADRs, engineering standards, automation strategy, runbook, PR checklist, `AGENTS.md`, Copilot instructions, and an AI-assisted development adoption plan.
 
 ---
 

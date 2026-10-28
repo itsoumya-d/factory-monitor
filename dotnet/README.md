@@ -1,21 +1,22 @@
 # Fuel Integration Hub
 
-A production-grade .NET 10 reference service for the integration layer between fuel-site systems, an ERP, and operations teams. It is intentionally built around the work in Octane Systems' Senior Software Developer role: C# and .NET, advanced SQL and schema design, API and third-party integration, CI/CD, cloud deployment, mentoring standards, and AI-assisted development.
+A production-grade .NET 10 reference service for the integration layer between fuel-site systems, an ERP, and operations teams. It is built around the patterns enterprise integration and automation roles need: C# and .NET, advanced SQL, API and third-party integration, CI/CD quality gates, cloud deployment, technical leadership, and AI-assisted development.
 
 The service ingests forecourt transactions with idempotency and HMAC verification, writes an outbox message in the same database transaction, delivers events to the ERP with bounded retries and dead-letter handling, and reconciles site litres against ERP litres with an explicit variance threshold.
 
 [![.NET CI](https://github.com/itsoumya-d/factory-monitor/actions/workflows/dotnet-ci.yml/badge.svg)](https://github.com/itsoumya-d/factory-monitor/actions/workflows/dotnet-ci.yml)
 
-## Why this maps to the role
+## Why this maps to enterprise integration and automation roles
 
 | Role requirement | Evidence in this service |
 |---|---|
 | Strong C# and .NET | .NET 10, ASP.NET Core Minimal APIs, typed domain model, EF Core 10, xUnit, `TreatWarningsAsErrors` |
 | Advanced SQL and database design | Normalised schema, unique and covering indexes, check constraints, concurrency tokens, transactional outbox, reconciliation aggregates |
 | API and integration development | REST API, API-key authentication, HMAC-SHA256 webhook verification, idempotency keys, ERP adapter, retry/backoff, dead-letter queue |
+| Automation and integration assurance | xUnit domain and API integration suites, real HTTP pipeline tests, end-to-end signed smoke harness, CI quality gates, deterministic test data, benchmark harness |
+| Engineering standards and mentoring | ADRs, automation strategy, runbook, PR checklist, code review guidance, AI-agent instructions, explicit trade-offs |
 | CI/CD and modern DevOps | GitHub Actions restore, format, build, test, coverage, vulnerability audit, publish artifact, Dockerfile, Dependabot |
 | Cloud environment | Azure Container Apps, Azure Files persistence, Log Analytics, Bicep infrastructure, health and readiness probes |
-| Mentoring and technical leadership | ADRs, engineering standards, runbook, PR checklist, AI-agent instructions, explicit design trade-offs |
 | AI-assisted development | `AGENTS.md`, Copilot instructions, verification-first workflow, prompt and review guardrails |
 | Fuel/ERP domain | Site, dispenser, product, fuel transaction, litre reconciliation, ERP outbox event |
 
@@ -143,13 +144,22 @@ curl -sS -X POST "http://localhost:5085/api/v1/sites/AKL-01/reconciliations" \
 
 `DateTimeOffset` values are stored as Unix milliseconds so range predicates translate correctly across SQLite and relational providers. Decimal columns use explicit precision and SQLite-safe `CAST(... AS REAL)` bounds in check constraints. The EF model is provider-agnostic; the deployment template uses SQLite on Azure Files for a low-cost demo, and the same model can be moved to Azure SQL or PostgreSQL before horizontal scale.
 
-## Tests
+## Tests and automation
 
 ```bash
 dotnet test FuelIntegrationHub.slnx -c Release
 ```
 
 31 tests: 16 domain tests and 15 API integration tests. The API suite uses `WebApplicationFactory`, a shared in-memory SQLite connection, real authentication, real HMAC verification, real EF Core persistence, and the simulated ERP adapter. It covers idempotency, invalid signatures, missing API keys, unknown sites, domain validation, batch partial success, paging, reconciliation variance, outbox delivery, dead-letter requeue, metrics, and public health checks.
+
+An end-to-end smoke harness verifies the published API over real HTTP:
+
+```bash
+ASPNETCORE_ENVIRONMENT=Development dotnet run --project src/FuelIntegrationHub.Api -c Release --urls http://127.0.0.1:5099 &
+bash scripts/verify-api.sh
+```
+
+The smoke harness signs a real webhook, creates a transaction, replays it to prove idempotency, queries it back, runs reconciliation, and checks operational metrics. The strategy and extension plan are in [`docs/automation-strategy.md`](docs/automation-strategy.md).
 
 ## Benchmarks
 
@@ -180,6 +190,7 @@ The `.github/workflows/dotnet-ci.yml` workflow runs on changes under `dotnet/`:
 5. `dotnet list package --vulnerable --include-transitive`.
 6. Publish the API artifact.
 7. Upload test and coverage artifacts.
+8. Start the published API and run the signed end-to-end smoke harness.
 
 Dependabot keeps NuGet and GitHub Actions current. The Dockerfile is a multi-stage .NET 10 build and is suitable for Container Apps, AKS, or any OCI runtime.
 
@@ -233,7 +244,8 @@ dotnet/
 │   └── FuelIntegrationHub.Api.Tests/
 ├── bench/FuelIntegrationHub.Benchmarks/    # repeatable local benchmark
 ├── deploy/                                 # Azure Container Apps Bicep
-├── docs/                                   # ADRs, runbook, standards, AI workflow
+├── scripts/verify-api.sh                   # end-to-end signed API smoke harness
+├── docs/                                   # ADRs, runbook, automation strategy, standards, AI workflow
 ├── AGENTS.md
 ├── SECURITY.md
 └── FuelIntegrationHub.slnx
@@ -245,4 +257,4 @@ dotnet/
 - Minimal APIs keep the integration surface small and explicit. ASP.NET MVC is a reasonable alternative if the team already standardises on controllers.
 - The ERP adapter is simulated by default so reviewers can run the full flow without credentials. Set `Erp__Mode=Http` and `Erp__BaseUrl` to point at a real endpoint.
 - The outbox is at-least-once. The ERP must enforce the idempotency key; the service does not claim exactly-once delivery.
-- The service is a focused integration slice, not the full Octane ERP. It demonstrates the engineering patterns the role needs: safe ingestion, reliable integration, reconciliation, observability, and maintainable delivery.
+- The service is a focused integration slice, not a full commercial ERP. It demonstrates the engineering patterns the role needs: safe ingestion, reliable integration, reconciliation, observability, automation, and maintainable delivery.
