@@ -17,8 +17,8 @@ namespace FuelIntegrationHub.Api.Tests;
 
 public sealed class ApiFactory : WebApplicationFactory<Program>
 {
-    public const string ApiKey = "test-only-api-key-not-a-secret";
-    public const string WebhookSecret = "test-only-webhook-secret-not-a-secret";
+    public const string ApiKey = "test-value-000000";
+    public const string WebhookSecret = "test-value-111111";
 
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
 
