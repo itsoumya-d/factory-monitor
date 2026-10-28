@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/bench/">
+    <Project Path="bench/FuelIntegrationHub.Benchmarks/FuelIntegrationHub.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/FuelIntegrationHub.Api/FuelIntegrationHub.Api.csproj" />
+    <Project Path="src/FuelIntegrationHub.Domain/FuelIntegrationHub.Domain.csproj" />
+    <Project Path="src/FuelIntegrationHub.Infrastructure/FuelIntegrationHub.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FuelIntegrationHub.Api.Tests/FuelIntegrationHub.Api.Tests.csproj" />
+    <Project Path="tests/FuelIntegrationHub.Domain.Tests/FuelIntegrationHub.Domain.Tests.csproj" />
+  </Folder>
+</Solution>
