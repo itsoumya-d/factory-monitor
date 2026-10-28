@@ -8,6 +8,18 @@ On top of that product, Shado ships the **Universal Multimodal Spatial Intellige
 
 **Status: implemented and green.** Phase 1–6 (ingestion → inference → RL → VLM → API → DB) plus Platform deliverables D1–D5 are merged to `main`; the workspace runs **434 tests** (+50 web vitest +8 Playwright E2E incl. the drag-to-fix label reviewer, suspect-window scrubber and RL pause desk), `cargo clippy -D warnings` clean, `cargo deny` clean (bans/sources/licenses/advisories), and CI passes **7/7 jobs** (lint, unit, integration w/ TimescaleDB, simulation, security, wasm, **web** incl. E2E).
 
+### .NET 10 ERP integration service
+
+[`dotnet/`](dotnet/) contains **Fuel Integration Hub**, a production-grade .NET 10 service for fuel-site transaction ingestion, idempotent ERP delivery, and litre reconciliation. It is built around the C#/.NET, SQL, API integration, CI/CD, Azure, mentoring, and AI-assisted-development requirements of the Octane Systems Senior Software Developer role.
+
+- **31 tests green** (16 domain, 15 API integration) with `dotnet build` warnings-as-errors and a `dotnet format` CI gate.
+- **HTTP edge:** ASP.NET Core Minimal APIs, API-key authentication, HMAC-SHA256 webhook verification over raw bodies, RFC 9457 Problem Details.
+- **Data:** EF Core 10, unique idempotency keys, check constraints, concurrency tokens, time-range indexes, paged queries, reconciliation aggregates.
+- **Integration:** transactional outbox, exponential backoff, dead-letter requeue, at-least-once delivery with a stable ERP idempotency key.
+- **Delivery:** GitHub Actions (`dotnet-ci.yml`), Dockerfile, Azure Container Apps + Azure Files + Log Analytics Bicep, Dependabot.
+- **Benchmark:** 4,778 tx/s ingest, 316,884 rows/s reconciliation, 10.72 ms paged query on a 50,000-transaction SQLite dataset.
+- **Leadership:** ADRs, engineering standards, runbook, PR checklist, `AGENTS.md`, Copilot instructions, and an AI-assisted development adoption plan.
+
 ---
 
 ## 1. What This System Does (Daily Lifecycle)
@@ -129,7 +141,17 @@ factory-monitor/
 │   ├── universal-bridge-rs/         # ONVIF verifier, MoQT seam, fieldbus codecs, TPM/C2PA, agents
 │   ├── spatial-studio-ui/           # dioxus wasm shell: onboarding, ROI ledger, scorecard
 │   └── api-server/migrations/0001_shado_core.sql   # Postgres+TimescaleDB schema
-└── .github/workflows/ci.yml         # 6-job CI (lint / unit / integration / simulation / security / wasm)
+├── dotnet/                          # Fuel Integration Hub — .NET 10 ERP integration service
+│   ├── src/FuelIntegrationHub.Domain/          # invariants + reconciliation rules
+│   ├── src/FuelIntegrationHub.Infrastructure/  # EF Core, outbox, ERP adapters
+│   ├── src/FuelIntegrationHub.Api/             # Minimal API, HMAC, endpoints, Dockerfile
+│   ├── tests/                                 # 31 xUnit domain + API integration tests
+│   ├── bench/                                 # repeatable ingestion/reconciliation benchmark
+│   ├── deploy/                                # Azure Container Apps Bicep
+│   └── docs/                                  # ADRs, runbook, standards, AI workflow
+└── .github/workflows/
+    ├── ci.yml                       # Rust + web CI
+    └── dotnet-ci.yml                # .NET restore/format/build/test/coverage/publish
 ```
 
 ## 5. The Universal Platform (docs/16→17) in One Paragraph
@@ -172,7 +194,7 @@ Config (`crates/api-server/src/config.rs`), priority CLI > env > defaults:
 
 ## 8. CI — every push, both branches
 
-`.github/workflows/ci.yml`:
+`.github/workflows/ci.yml` covers the Rust and web workspaces. `.github/workflows/dotnet-ci.yml` covers the .NET integration service with restore, format, Release build, tests, coverage, vulnerability audit, and publish.
 
 | Job | What it runs |
 |-----|--------------|

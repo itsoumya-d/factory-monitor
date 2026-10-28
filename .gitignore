@@ -22,3 +22,14 @@ taps/
 .DS_Store
 .idea/
 .vscode/
+
+# .NET local build state
+.nuget-packages/
+dotnet/NuGet.config
+dotnet/local-feed/
+dotnet/**/bin/
+dotnet/**/obj/
+dotnet/**/TestResults/
+dotnet/**/*.db
+dotnet/**/*.db-shm
+dotnet/**/*.db-wal
