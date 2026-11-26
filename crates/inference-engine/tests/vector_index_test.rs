@@ -36,7 +36,9 @@ fn vector_index_lifecycle_and_top_k() {
     assert!((top_matches[1].1 - 0.707106).abs() < 1e-4);
 
     // Threshold search for similarity >= 0.5
-    let threshold_matches = index.find_threshold(&query_x, 0.5).expect("threshold search");
+    let threshold_matches = index
+        .find_threshold(&query_x, 0.5)
+        .expect("threshold search");
     assert_eq!(threshold_matches.len(), 2);
     assert_eq!(threshold_matches[0].0, 10);
     assert_eq!(threshold_matches[1].0, 40);
@@ -54,7 +56,9 @@ fn vector_index_dimension_and_edge_cases() {
     assert!(index.insert(2, &[0.0, 0.0, 0.0, 0.0]).is_err());
 
     // Valid insert
-    index.insert(100, &[0.5, 0.5, 0.5, 0.5]).expect("insert valid");
+    index
+        .insert(100, &[0.5, 0.5, 0.5, 0.5])
+        .expect("insert valid");
 
     // Empty result for k = 0
     let empty_k = index.top_k(&[1.0, 0.0, 0.0, 0.0], 0).expect("k=0 search");
