@@ -32,4 +32,8 @@ pub enum InferenceError {
     MissingZoneModel { zone: ZoneId },
     #[error("vision detector: {0}")]
     Detector(String),
+    #[error("vector index: dimension mismatch: expected {expected}, got {actual}")]
+    VectorDimensionMismatch { expected: usize, actual: usize },
+    #[error("vector index: empty vector provided")]
+    EmptyVector,
 }
