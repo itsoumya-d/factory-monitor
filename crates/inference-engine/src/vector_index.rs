@@ -109,6 +109,12 @@ impl VectorIndex {
 
     /// Returns the top-k nearest neighbors sorted by cosine similarity descending.
     pub fn top_k(&self, query: &[f32], k: usize) -> Result<Vec<(u64, f32)>, InferenceError> {
+        if query.len() != self.dimension {
+            return Err(InferenceError::VectorDimensionMismatch {
+                expected: self.dimension,
+                actual: query.len(),
+            });
+        }
         if k == 0 || self.is_empty() {
             return Ok(Vec::new());
         }
@@ -136,6 +142,12 @@ impl VectorIndex {
         query: &[f32],
         min_similarity: f32,
     ) -> Result<Vec<(u64, f32)>, InferenceError> {
+        if query.len() != self.dimension {
+            return Err(InferenceError::VectorDimensionMismatch {
+                expected: self.dimension,
+                actual: query.len(),
+            });
+        }
         if self.is_empty() {
             return Ok(Vec::new());
         }
