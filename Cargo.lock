@@ -635,7 +635,7 @@ dependencies = [
  "toml",
  "treeline",
  "ureq",
- "url 2.5.8",
+ "url 2.5.9",
  "uuid",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -1039,7 +1039,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "time",
- "url 2.5.8",
+ "url 2.5.9",
 ]
 
 [[package]]
@@ -1710,7 +1710,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "tungstenite 0.27.0",
- "url 2.5.8",
+ "url 2.5.9",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-streams 0.4.2",
@@ -3011,9 +3011,9 @@ checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
 name = "form_urlencoded"
-version = "1.2.2"
+version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb4cb245038516f5f85277875cdaa4f7d2c9a0fa0468de06ed190163b1581fcf"
+checksum = "afa489199eaffb1211795df1c6236ce1ad0d41a6fa45250add73e3b02420f06e"
 dependencies = [
  "percent-encoding 2.3.2",
 ]
@@ -4453,7 +4453,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing",
- "url 2.5.8",
+ "url 2.5.9",
 ]
 
 [[package]]
@@ -5853,7 +5853,7 @@ dependencies = [
  "tower",
  "tower-http",
  "tower-service",
- "url 2.5.8",
+ "url 2.5.9",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-streams 0.4.2",
@@ -5898,7 +5898,7 @@ dependencies = [
  "tower",
  "tower-http",
  "tower-service",
- "url 2.5.8",
+ "url 2.5.9",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-streams 0.5.0",
@@ -5937,7 +5937,7 @@ dependencies = [
  "sha2 0.10.9",
  "thiserror 2.0.21",
  "tracing",
- "url 2.5.8",
+ "url 2.5.9",
  "uuid",
 ]
 
@@ -5966,7 +5966,7 @@ dependencies = [
  "http",
  "mime",
  "thiserror 2.0.21",
- "url 2.5.8",
+ "url 2.5.9",
 ]
 
 [[package]]
@@ -5982,7 +5982,7 @@ dependencies = [
  "rig-http",
  "thiserror 2.0.21",
  "tokio",
- "url 2.5.8",
+ "url 2.5.9",
 ]
 
 [[package]]
@@ -6951,7 +6951,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tracing",
- "url 2.5.8",
+ "url 2.5.9",
  "uuid",
  "webpki-roots 0.26.11",
 ]
@@ -6991,7 +6991,7 @@ dependencies = [
  "sqlx-sqlite",
  "syn 2.0.119",
  "tokio",
- "url 2.5.8",
+ "url 2.5.9",
 ]
 
 [[package]]
@@ -7099,7 +7099,7 @@ dependencies = [
  "sqlx-core",
  "thiserror 2.0.21",
  "tracing",
- "url 2.5.8",
+ "url 2.5.9",
  "uuid",
 ]
 
@@ -7700,7 +7700,7 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
- "url 2.5.8",
+ "url 2.5.9",
 ]
 
 [[package]]
@@ -8070,9 +8070,9 @@ dependencies = [
 
 [[package]]
 name = "url"
-version = "2.5.8"
+version = "2.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff67a8a4397373c3ef660812acab3268222035010ab8680ec4215f38ba3d0eed"
+checksum = "f00cd2407bb42c0ef17be88d4cf020f5cceffd121665bac9b8b9493a369b3b1a"
 dependencies = [
  "form_urlencoded",
  "idna 1.1.0",

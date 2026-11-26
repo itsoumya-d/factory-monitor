@@ -161,18 +161,18 @@ mod tests {
 
     #[test]
     fn test_empty_and_capacity() {
-        let idx = VectorIndex::with_capacity(4, 10).unwrap();
+        let idx = VectorIndex::with_capacity(4, 10).expect("valid capacity");
         assert_eq!(idx.dimension(), 4);
         assert_eq!(idx.len(), 0);
         assert!(idx.is_empty());
 
-        let res = idx.top_k(&[1.0, 0.0, 0.0, 0.0], 5).unwrap();
+        let res = idx.top_k(&[1.0, 0.0, 0.0, 0.0], 5).expect("valid search");
         assert!(res.is_empty());
     }
 
     #[test]
     fn test_dimension_validation() {
-        let mut idx = VectorIndex::new(3).unwrap();
+        let mut idx = VectorIndex::new(3).expect("valid index");
         assert!(idx.insert(1, &[1.0, 0.0]).is_err());
         assert!(idx.insert(1, &[0.0, 0.0, 0.0]).is_err()); // Zero norm
         assert!(idx.insert(1, &[1.0, 0.0, 0.0]).is_ok());
@@ -182,13 +182,13 @@ mod tests {
 
     #[test]
     fn test_exact_cosine_similarity() {
-        let mut idx = VectorIndex::new(3).unwrap();
-        idx.insert(101, &[1.0, 0.0, 0.0]).unwrap(); // Unit X
-        idx.insert(102, &[0.0, 2.0, 0.0]).unwrap(); // Unit Y (unnormalized input)
-        idx.insert(103, &[-1.0, 0.0, 0.0]).unwrap(); // -Unit X
+        let mut idx = VectorIndex::new(3).expect("valid index");
+        idx.insert(101, &[1.0, 0.0, 0.0]).expect("insert unit X"); // Unit X
+        idx.insert(102, &[0.0, 2.0, 0.0]).expect("insert unit Y"); // Unit Y (unnormalized input)
+        idx.insert(103, &[-1.0, 0.0, 0.0]).expect("insert -unit X"); // -Unit X
 
         let query = [1.0, 0.0, 0.0];
-        let top = idx.top_k(&query, 3).unwrap();
+        let top = idx.top_k(&query, 3).expect("top_k query");
         assert_eq!(top.len(), 3);
 
         // Identical direction -> similarity ~1.0
@@ -206,13 +206,13 @@ mod tests {
 
     #[test]
     fn test_top_k_ordering_and_truncation() {
-        let mut idx = VectorIndex::new(2).unwrap();
-        idx.insert(1, &[1.0, 0.0]).unwrap();
-        idx.insert(2, &[0.9, 0.1]).unwrap();
-        idx.insert(3, &[0.5, 0.5]).unwrap();
-        idx.insert(4, &[0.0, 1.0]).unwrap();
+        let mut idx = VectorIndex::new(2).expect("valid index");
+        idx.insert(1, &[1.0, 0.0]).expect("insert v1");
+        idx.insert(2, &[0.9, 0.1]).expect("insert v2");
+        idx.insert(3, &[0.5, 0.5]).expect("insert v3");
+        idx.insert(4, &[0.0, 1.0]).expect("insert v4");
 
-        let top2 = idx.top_k(&[1.0, 0.0], 2).unwrap();
+        let top2 = idx.top_k(&[1.0, 0.0], 2).expect("query top 2");
         assert_eq!(top2.len(), 2);
         assert_eq!(top2[0].0, 1);
         assert_eq!(top2[1].0, 2);
@@ -221,13 +221,13 @@ mod tests {
 
     #[test]
     fn test_find_threshold() {
-        let mut idx = VectorIndex::new(2).unwrap();
-        idx.insert(1, &[1.0, 0.0]).unwrap();
-        idx.insert(2, &[0.8, 0.6]).unwrap();
-        idx.insert(3, &[0.0, 1.0]).unwrap();
+        let mut idx = VectorIndex::new(2).expect("valid index");
+        idx.insert(1, &[1.0, 0.0]).expect("insert v1");
+        idx.insert(2, &[0.8, 0.6]).expect("insert v2");
+        idx.insert(3, &[0.0, 1.0]).expect("insert v3");
 
         let query = [1.0, 0.0];
-        let threshold_matches = idx.find_threshold(&query, 0.75).unwrap();
+        let threshold_matches = idx.find_threshold(&query, 0.75).expect("query threshold");
         assert_eq!(threshold_matches.len(), 2);
         assert_eq!(threshold_matches[0].0, 1);
         assert_eq!(threshold_matches[1].0, 2);
