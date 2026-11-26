@@ -10,6 +10,7 @@ pub mod mock;
 pub mod preproc;
 pub mod ring;
 pub mod tracker;
+pub mod vector_index;
 pub mod zones;
 
 pub use aligner::{
@@ -25,6 +26,7 @@ pub use mock::ScriptedVisionDetector;
 pub use preproc::{DEFAULT_TARGET, LetterboxPlan, ModelFamily, NormalizedTensor, preprocess};
 pub use ring::{HardNegativeRecord, HardNegativeRing, NegativePriority, PromotionState};
 pub use tracker::{ByteTracker, TrackParams, TrackState, TrackedBox, iou_xyxy};
+pub use vector_index::VectorIndex;
 pub use zones::{
     CountLine, CountableClass, CrossDir, LineCrossCounter, LineCrossOutcome, MaskPolygon,
     TrackMotion, ZoneRois, segments_intersect,

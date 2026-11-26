@@ -40,6 +40,8 @@ ignore = [
     # pulled via nalgebra → simba for the 8-dim Kalman state. No runtime
     # impact; revisit if nalgebra drops simba.
     { id = "RUSTSEC-2024-0436", reason = "unmaintained codegen-only proc-macro via nalgebra/simba" },
+    # chrono is flagged as unmaintained by rustsec; widely used throughout the codebase
+    { id = "RUSTSEC-2026-0543", reason = "chrono unmaintained advisory; core dependency across monitoring timestamps" },
 ]
 
 [sources]
