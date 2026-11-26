@@ -31,9 +31,9 @@ fn vector_index_lifecycle_and_top_k() {
     assert_eq!(top_matches[0].0, 10);
     assert!((top_matches[0].1 - 1.0).abs() < 1e-5);
 
-    // Second highest is diagonal ID 40 (~0.7071)
+    // Second highest is diagonal ID 40 (~FRAC_1_SQRT_2)
     assert_eq!(top_matches[1].0, 40);
-    assert!((top_matches[1].1 - 0.707106).abs() < 1e-4);
+    assert!((top_matches[1].1 - std::f32::consts::FRAC_1_SQRT_2).abs() < 1e-4);
 
     // Threshold search for similarity >= 0.5
     let threshold_matches = index
